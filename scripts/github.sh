@@ -2,6 +2,7 @@
 
 # Coffee Mapper Android GitHub Operations Script
 # This script handles various GitHub operations including commits, pushes, and releases
+# Version: 1.0.0
 
 # Function to display usage
 usage() {
