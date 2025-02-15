@@ -5,7 +5,6 @@ import 'package:coffee_mapper/app_constants.dart';
 import 'package:coffee_mapper/providers/admin_provider.dart';
 import 'package:coffee_mapper/utils/area_formatter.dart';
 import 'package:coffee_mapper/utils/logger.dart';
-//import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
