@@ -27,11 +27,12 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
       
-      # Set JAVA_HOME for Gradle
-      - name: Set JAVA_HOME
+      # Configure Gradle
+      - name: Configure Gradle
         run: |
-          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
+          echo "org.gradle.java.home=$(which java | xargs readlink -f | sed 's/\/bin\/java//')" >> android/gradle.properties
       
       # Cache Flutter dependencies
       - name: Cache Flutter dependencies
