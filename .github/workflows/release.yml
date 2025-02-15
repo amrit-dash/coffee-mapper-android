@@ -121,13 +121,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: build/app/outputs/flutter-apk/app-release.apk
-          name: Release ${GITHUB_REF#refs/tags/}
+          name: Release ${{ github.ref_name }}
           body: |
-            Coffee Mapper Android Release ${GITHUB_REF#refs/tags/}
+            Coffee Mapper Android Release ${{ github.ref_name }}
             
             This is an automated release build of Coffee Mapper Android.
             
-            **Version:** ${GITHUB_REF#refs/tags/}
+            **Version:** ${{ github.ref_name }}
             **Build Number:** ${{ github.run_number }}
+            **Release Date:** ${{ github.event.release.published_at }}
             
             Please download the APK and test thoroughly before distribution. 

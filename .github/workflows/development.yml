@@ -45,20 +45,6 @@ jobs:
         run: |
           echo "org.gradle.java.home=$(which java | xargs readlink -f | sed 's/\/bin\/java//')" >> android/gradle.properties
       
-      # Cache Flutter dependencies
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ runner.tool_cache }}/flutter
-            ${{ env.PUB_CACHE }}
-            .dart_tool
-            build
-          key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
-            ${{ runner.os }}-flutter-
-      
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -150,4 +136,4 @@ jobs:
             
             ⚠️ This is a development build and should be used for testing purposes only.
             
-            _Last updated: $(date +'%Y-%m-%d %H:%M:%S')_ 
+            _Last updated: ${{ format('2024-03-{0} {1}', github.run_number, github.event.head_commit.timestamp) }}_ 
