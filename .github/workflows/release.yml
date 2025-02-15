@@ -42,20 +42,6 @@ jobs:
         run: |
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
       
-      # Cache Flutter dependencies
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ runner.tool_cache }}/flutter
-            ${{ env.PUB_CACHE }}
-            .dart_tool
-            build
-          key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
-            ${{ runner.os }}-flutter-
-      
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
