@@ -721,7 +721,8 @@ class _FormFieldsState extends State<FormFields> {
         decoration: BoxDecoration(
           color: (fieldType == "fixedValue" || fieldType == "imageCapture")
               ? Theme.of(context).cardColor
-              : Theme.of(context).dialogBackgroundColor,
+              : Theme.of(context).dialogTheme.backgroundColor ??
+                  Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(13),
         ),
         child: Padding(
@@ -829,7 +830,8 @@ class _FormFieldsState extends State<FormFields> {
 
     return Theme(
       data: Theme.of(context).copyWith(
-        canvasColor: Theme.of(context).dialogBackgroundColor,
+        canvasColor: Theme.of(context).dialogTheme.backgroundColor ??
+            Theme.of(context).colorScheme.surface,
       ),
       child: DropdownButtonFormField<String>(
         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -1181,7 +1183,8 @@ class _FormFieldsState extends State<FormFields> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: Theme.of(context).dialogBackgroundColor,
+              backgroundColor: Theme.of(context).dialogTheme.backgroundColor ??
+                  Theme.of(context).colorScheme.surface,
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

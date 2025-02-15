@@ -1,18 +1,18 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:provider/provider.dart';
 import 'package:coffee_mapper/providers/admin_provider.dart';
-import 'package:coffee_mapper/utils/logger.dart';
-
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:coffee_mapper/screens/login_screen.dart';
 import 'package:coffee_mapper/screens/splash_screen.dart';
+import 'package:coffee_mapper/utils/logger.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,7 +67,9 @@ class CoffeeMapperApp extends StatelessWidget {
         primaryColor: const Color(0xFFc09366),
         scaffoldBackgroundColor: const Color(0xFFD5B799),
         cardColor: const Color(0xFFEADCC8),
-        dialogBackgroundColor: const Color(0xFFFAEEE6),
+        dialogTheme: const DialogTheme(
+          backgroundColor: Color(0xFFFAEEE6),
+        ),
         unselectedWidgetColor: const Color(0xff402200),
         highlightColor: const Color(0xFF632D00),
         colorScheme: ColorScheme.fromSeed(
@@ -91,7 +93,7 @@ class CoffeeMapperApp extends StatelessWidget {
       ),
       routes: {
         '/main_menu': (context) => const HomeScreen(),
-        '/login_screen': (context) => const LoginScreen(),// Add this line
+        '/login_screen': (context) => const LoginScreen(), // Add this line
       },
       home: const SplashScreen(),
     );
@@ -109,7 +111,9 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.active) {
           if (snapshot.hasData && snapshot.data != null) {
             // Check admin status for persistent login
-            context.read<AdminProvider>().checkAdminStatus(snapshot.data!.email!);
+            context
+                .read<AdminProvider>()
+                .checkAdminStatus(snapshot.data!.email!);
             return const HomeScreen();
           } else {
             return const LoginScreen();

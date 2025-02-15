@@ -32,16 +32,17 @@ class CustomDropdown extends StatelessWidget {
         SizedBox(height: 4),
         Theme(
           data: Theme.of(context).copyWith(
-            canvasColor: Theme.of(context).dialogBackgroundColor,
+            canvasColor: Theme.of(context).dialogTheme.backgroundColor ??
+                Theme.of(context).colorScheme.surface,
           ),
           child: Container(
             decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(
-                    color: Theme.of(context).colorScheme.error,
-                    width: 1.5,
-                  ),
-                )),
+              bottom: BorderSide(
+                color: Theme.of(context).colorScheme.error,
+                width: 1.5,
+              ),
+            )),
             child: DropdownButton<String>(
               isDense: true,
               isExpanded: true,
@@ -56,30 +57,30 @@ class CustomDropdown extends StatelessWidget {
               value: value,
               items: items.isNotEmpty
                   ? items.map((item) {
-                return DropdownMenuItem(
-                  value: item,
-                  child: Text(
-                    item,
-                    style: const TextStyle(fontFamily: 'Gilroy-Medium'),
-                  ),
-                );
-              }).toList()
+                      return DropdownMenuItem(
+                        value: item,
+                        child: Text(
+                          item,
+                          style: const TextStyle(fontFamily: 'Gilroy-Medium'),
+                        ),
+                      );
+                    }).toList()
                   : [
-                DropdownMenuItem(
-                  value: '',
-                  enabled: false,
-                  child: Center(
-                    child: SizedBox(
-                      width: 40,
-                      height: 50,
-                      child: LoadingAnimationWidget.waveDots(
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 40,
+                      DropdownMenuItem(
+                        value: '',
+                        enabled: false,
+                        child: Center(
+                          child: SizedBox(
+                            width: 40,
+                            height: 50,
+                            child: LoadingAnimationWidget.waveDots(
+                              color: Theme.of(context).colorScheme.secondary,
+                              size: 40,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                    ],
               onChanged: onChanged,
             ),
           ),
