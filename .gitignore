@@ -101,6 +101,7 @@ key.properties
 # API Keys and Sensitive Resources
 **/android/app/src/*/res/values/strings.xml
 **/android/key.properties
+lib/config/app_config.dart
 
 # Environment specific files
 *.env
