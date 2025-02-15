@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Coffee Mapper Android GitHub Operations Script
+# This script handles various GitHub operations including commits, pushes, and releases
+
 # Function to display usage
 usage() {
     echo "Usage: $0 <command> [options]"
