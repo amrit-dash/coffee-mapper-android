@@ -52,9 +52,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
-      - name: Analyze project source
-        run: flutter analyze --no-fatal-infos
-        
       - name: Create firebase_options.dart
         run: |
           echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > lib/firebase_options.dart
@@ -71,6 +68,9 @@ jobs:
         run: |
           echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services.json
       
+      - name: Analyze project source
+        run: flutter analyze --no-fatal-infos
+        
       - name: Build Debug APK
         run: flutter build apk --debug --build-name=1.0.0 --build-number=${{ github.run_number }}
       

@@ -47,9 +47,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
-      - name: Analyze project source
-        run: flutter analyze --no-fatal-infos
-        
       - name: Create firebase_options.dart
         run: |
           echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > lib/firebase_options.dart
@@ -77,6 +74,9 @@ jobs:
           storeFile=release.jks
           EOF
       
+      - name: Analyze project source
+        run: flutter analyze --no-fatal-infos
+        
       - name: Build Release APK
         run: flutter build apk --release --build-name=${GITHUB_REF#refs/tags/} --build-number=${{ github.run_number }}
       
