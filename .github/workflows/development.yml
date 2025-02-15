@@ -78,6 +78,16 @@ jobs:
           }
           EOL
 
+      - name: Create strings.xml with Maps API Key
+        run: |
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/strings.xml << 'EOL'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="maps_api_key">${{ secrets.DEV_MAPS_API_KEY }}</string>
+          </resources>
+          EOL
+
       - name: Setup Firebase Configuration
         run: |
           echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-dev.json
