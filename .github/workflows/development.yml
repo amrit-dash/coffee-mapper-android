@@ -13,6 +13,9 @@ env:
   FLUTTER_VERSION: '3.29.0'
   PUB_CACHE: ~/.pub-cache
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Debug APK
@@ -122,16 +125,17 @@ jobs:
           retention-days: 7
           
       # Create/Update Debug Release
-      - name: Delete old debug release
-        uses: dev-drprasad/delete-tag-and-release@v1.0
-        with:
-          tag_name: debug-latest
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          delete_release: true
+      - name: Delete old debug release and tag
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          gh release delete debug-latest --yes || true
+          git push origin :debug-latest || true
         continue-on-error: true
         
       - name: Create Debug Release
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: build/app/outputs/flutter-apk/app-debug.apk
           name: "Latest Debug Build"
