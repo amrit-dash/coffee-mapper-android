@@ -55,6 +55,10 @@ jobs:
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
+      - name: Create firebase_options.dart
+        run: |
+          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > lib/firebase_options.dart
+        
       - name: Create app_config.dart
         run: |
           cat > lib/config/app_config.dart << 'EOL'
