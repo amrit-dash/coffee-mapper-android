@@ -29,6 +29,14 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       
+      # Setup Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      # Accept Android SDK licenses
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+      
       # Configure Gradle
       - name: Configure Gradle
         run: |
@@ -72,7 +80,8 @@ jobs:
 
       - name: Setup Firebase Configuration
         run: |
-          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services.json
+          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-dev.json
+          cp android/app/google-services-dev.json android/app/google-services.json
       
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
