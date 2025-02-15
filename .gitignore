@@ -1,0 +1,159 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code related
+.vscode/
+*.code-workspace
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/builds/
+*.lock
+pubspec.yaml.bak
+*.freezed.dart
+*.g.dart
+*.gr.dart
+*.mocks.dart
+*.config.dart
+
+# Android related
+**/android/**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.*
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+**/android/app/google-services*.json
+**/android/app/src/*/res/values/strings.xml
+**/android/key.properties
+
+# iOS/XCode related
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/*sync/
+**/ios/**/.sconsign.dblite
+**/ios/**/.tags*
+**/ios/**/.vagrant/
+**/ios/**/DerivedData/
+**/ios/**/Icon?
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+**/ios/**/profile
+**/ios/**/xcuserdata
+**/ios/.generated/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/firebase_app_id_file.json
+
+# Firebase files
+google-services*.json
+firebase_options*.dart
+lib/config/firebase_options_*.dart
+firebase.json
+.firebase/
+firebase_options.dart
+
+# Keystore files
+*.jks
+*.keystore
+key.properties
+
+# API Keys and Sensitive Resources
+**/android/app/src/*/res/values/strings.xml
+**/android/key.properties
+
+# Environment specific files
+*.env
+.env*
+env.g.dart
+
+# Build and script outputs
+/builds/
+/scripts/*.log
+/scripts/temp/
+
+# Web related
+*.js.map
+*.js.deps
+*.js.map.deps
+web/firebase-config.js
+/web/
+
+# Coverage
+coverage/
+.test_coverage.dart
+coverage_badge.svg
+
+# Native code
+*.so
+*.dylib
+*.dll
+*.o
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+.DS_Store
+Thumbs.db
+
+# FVM
+.fvm/flutter_sdk
+
+# Mason
+.mason/
+mason-lock.json
+
+# Generated Files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.mocks.dart
+*.config.dart
+
+# Add these if not already present
+**/android/app/src/*/res/values/strings.xml
+**/android/key.properties
+*.jks
+google-services*.json
+lib/config/app_config.dart

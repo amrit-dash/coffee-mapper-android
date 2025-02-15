@@ -1,0 +1,78 @@
+name: Release Build
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.5.4'
+          channel: 'stable'
+          cache: true
+      
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Create app_config.dart
+        run: |
+          cat > lib/config/app_config.dart << 'EOL'
+          class AppConfig {
+            static const String googleMapsApiKey = '${{ secrets.PROD_MAPS_API_KEY }}';
+          }
+          EOL
+
+      - name: Setup Firebase Configuration
+        run: |
+          echo "${{ secrets.PROD_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services.json
+
+      - name: Setup Keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > android/app/release.jks
+          
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release.jks
+          EOF
+      
+      - name: Build Release APK
+        run: flutter build apk --release --build-name=${GITHUB_REF#refs/tags/} --build-number=${{ github.run_number }}
+      
+      - name: Upload Release APK to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+          
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: Release ${GITHUB_REF#refs/tags/}
+          body: |
+            Coffee Mapper Android Release ${GITHUB_REF#refs/tags/}
+            
+            This is an automated release build of Coffee Mapper Android.
+            
+            **Version:** ${GITHUB_REF#refs/tags/}
+            **Build Number:** ${{ github.run_number }}
+            
+            Please download the APK and test thoroughly before distribution. 
