@@ -4,6 +4,10 @@ on:
   release:
     types: [created]
 
+env:
+  FLUTTER_VERSION: '3.29.0'
+  PUB_CACHE: ~/.pub-cache
+
 jobs:
   build:
     name: Build Release APK
@@ -17,18 +21,34 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '17'
+      
+      # Cache Flutter dependencies
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ runner.tool_cache }}/flutter
+            ${{ env.PUB_CACHE }}
+            .dart_tool
+            build
+          key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
+            ${{ runner.os }}-flutter-
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.5.4'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
-          architecture: x64
           cache: true
       
-      - name: Get dependencies
+      - name: Install dependencies
         run: flutter pub get
+        
+      - name: Analyze project source
+        run: flutter analyze --no-fatal-infos
         
       - name: Create app_config.dart
         run: |
@@ -57,7 +77,7 @@ jobs:
         run: flutter build apk --release --build-name=${GITHUB_REF#refs/tags/} --build-number=${{ github.run_number }}
       
       - name: Upload Release APK to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
