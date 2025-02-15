@@ -23,6 +23,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
       
+      # Set JAVA_HOME for Gradle
+      - name: Set JAVA_HOME
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
+      
       # Cache Flutter dependencies
       - name: Cache Flutter dependencies
         uses: actions/cache@v3
