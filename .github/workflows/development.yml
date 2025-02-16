@@ -139,4 +139,4 @@ jobs:
             
             ⚠️ This is a development build and should be used for testing purposes only.
             
-            _Last updated: $(date '+%Y-%m-%d %H:%M:%S')_ 
+            _Last updated: ${{ github.event.head_commit.timestamp }}_ 

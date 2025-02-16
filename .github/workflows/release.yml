@@ -8,8 +8,8 @@ on:
         required: true
         type: string
       build_number:
-        description: 'Build number'
-        required: true
+        description: 'Build number (optional)'
+        required: false
         type: string
 
 env:
@@ -138,13 +138,19 @@ jobs:
             -v
         
       - name: Build Release APK
-        run: flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ inputs.build_number }}
+        run: flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+      
+      # Rename APK file
+      - name: Rename Release APK
+        run: |
+          cd build/app/outputs/flutter-apk
+          mv app-release.apk "coffee_mapper_${{ inputs.version }}.apk"
       
       - name: Upload Release APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/coffee_mapper_${{ inputs.version }}.apk
           retention-days: 30
           
       # Create and update tags
@@ -154,12 +160,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Create version tag
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}" -f
-          git push origin "v${{ inputs.version }}" --force
-          
           # Create/Update latest-release tag
-          git tag -a latest-release -m "Latest Release v${{ inputs.version }}" -f
+          git tag -a latest-release -m "Latest Release Build" -f
           git push origin latest-release --force
           
       # Upload to Release
@@ -170,14 +172,14 @@ jobs:
         with:
           tag_name: latest-release
           name: "Latest Release v${{ inputs.version }}"
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/flutter-apk/coffee_mapper_${{ inputs.version }}.apk
           body: |
             Coffee Mapper Android Release v${{ inputs.version }}
             
             This is the latest release build of Coffee Mapper Android.
             
             **Version:** v${{ inputs.version }}
-            **Build Number:** ${{ inputs.build_number }}
-            **Release Date:** $(date '+%Y-%m-%d %H:%M:%S')
+            **Build Number:** ${{ github.run_number }}
+            **Release Date:** ${{ github.event.head_commit.timestamp }}
             
             Please download the APK and test thoroughly before distribution. 
