@@ -110,22 +110,25 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
           
-      # Create/Update Debug Release
-      - name: Delete old debug release and tag
+      # Create/Update Debug Release and Tags
+      - name: Update debug tags
         run: |
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-          gh release delete debug-latest --yes || true
-          git push origin :debug-latest || true
-        continue-on-error: true
+          
+          # Delete existing latest-debug tag if it exists
+          git tag -d latest-debug || true
+          git push origin :refs/tags/latest-debug || true
+          
+          # Create/Update latest-debug tag
+          git tag -a latest-debug -m "Latest Debug Build"
+          git push origin latest-debug --force
         
-      - name: Create Debug Release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create/Update Debug Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-debug.apk
+          tag_name: latest-debug
           name: "Latest Debug Build"
-          tag_name: debug-latest
+          files: build/app/outputs/flutter-apk/app-debug.apk
           prerelease: true
           body: |
             This is the latest debug build of Coffee Mapper Android.

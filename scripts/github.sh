@@ -2,7 +2,7 @@
 
 # Coffee Mapper Android GitHub Operations Script
 # This script handles various GitHub operations including commits, pushes, and releases
-# Version: 1.0.0
+# Version: 2.0.0
 
 # Function to display usage
 usage() {
@@ -10,17 +10,17 @@ usage() {
     echo ""
     echo "Commands:"
     echo "  commit <message>                    Create a commit with the given message"
-    echo "  push <message> [mode]              Push changes with commit message and optional mode"
-    echo "    modes:"
+    echo "  push <message> [options]           Push changes with commit message and options"
+    echo "    options:"
     echo "      --skip-ci                      Push without triggering CI"
     echo "      --debug                        Push and trigger debug build"
-    echo "      --release <version>            Push and create a release with version"
+    echo "      --release <version> <build>    Push and create a release with version and build number"
     echo ""
     echo "Examples:"
     echo "  $0 commit \"feat: add new feature\""
     echo "  $0 push \"feat: add new feature\" --skip-ci"
     echo "  $0 push \"feat: add new feature\" --debug"
-    echo "  $0 push \"feat: new release\" --release v1.1.0"
+    echo "  $0 push \"feat: new release\" --release 1.1.2 2"
     exit 1
 }
 
@@ -47,39 +47,69 @@ create_commit() {
     git commit -m "$message"
 }
 
+# Function to handle debug build
+handle_debug_build() {
+    local message="$1"
+    
+    # Create commit first
+    create_commit "$message"
+    
+    # Push to trigger debug workflow
+    git push
+    
+    echo "Debug build triggered. The workflow will:"
+    echo "1. Build debug APK"
+    echo "2. Update latest-debug tag"
+    echo "3. Create/Update debug release"
+}
+
+# Function to handle release build
+handle_release_build() {
+    local message="$1"
+    local version="$2"
+    local build="$3"
+    
+    if [ -z "$version" ] || [ -z "$build" ]; then
+        echo "Error: Version number and build number are required for release mode"
+        usage
+    fi
+    
+    # Create commit first
+    create_commit "$message"
+    
+    # Push changes
+    git push
+    
+    # Trigger release workflow
+    gh workflow run release.yml -f version="$version" -f build_number="$build"
+    
+    echo "Release build triggered. The workflow will:"
+    echo "1. Clean up old version tags"
+    echo "2. Build release APK v$version (build $build)"
+    echo "3. Create version tag v$version"
+    echo "4. Update latest-release tag"
+    echo "5. Create/Update release"
+}
+
 # Function to push changes
 push_changes() {
     local message="$1"
     local mode="$2"
     local version="$3"
-    
-    # Create commit first
-    create_commit "$message"
+    local build="$4"
     
     case "$mode" in
         "--skip-ci")
+            # Create commit first
+            create_commit "$message"
             # Push with [skip ci] tag to skip GitHub Actions
             git push -o ci.skip
             ;;
         "--debug")
-            # Push normally to trigger debug workflow
-            git push
+            handle_debug_build "$message"
             ;;
         "--release")
-            if [ -z "$version" ]; then
-                echo "Error: Version number is required for release mode"
-                usage
-            fi
-            
-            # Create and push tag
-            git tag -a "$version" -m "Release $version"
-            git push origin "$version"
-            
-            # Create GitHub release
-            gh release create "$version" \
-                --title "Release $version" \
-                --notes "Release $version - $message" \
-                --target main
+            handle_release_build "$message" "$version" "$build"
             ;;
         *)
             echo "Error: Invalid mode"
@@ -102,7 +132,8 @@ case "$command" in
         message="$1"
         mode="$2"
         version="$3"
-        push_changes "$message" "$mode" "$version"
+        build="$4"
+        push_changes "$message" "$mode" "$version" "$build"
         ;;
     *)
         usage

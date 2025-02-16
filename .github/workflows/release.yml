@@ -1,8 +1,16 @@
 name: Release Build
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.1.2)'
+        required: true
+        type: string
+      build_number:
+        description: 'Build number'
+        required: true
+        type: string
 
 env:
   FLUTTER_VERSION: '3.29.0'
@@ -16,6 +24,21 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      
+      # Clean up existing tags
+      - name: Clean up old tags
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          
+          # Delete old release tags
+          for tag in $(git tag -l "v1.*"); do
+            git tag -d $tag
+            git push origin :refs/tags/$tag
+          done
+          
+          # Delete latest-release tag if it exists
+          git tag -d latest-release || true
+          git push origin :refs/tags/latest-release || true
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -112,10 +135,25 @@ jobs:
       # Update Kotlin version to fix compatibility issues
       - name: Update Kotlin version
         run: |
-          sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.22"/' android/build.gradle
+          sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
+        
+      # Create debug keystore
+      - name: Create debug keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -v
         
       - name: Build Release APK
-        run: flutter build apk --release --build-name=${{ github.ref_name }} --build-number=${{ github.run_number }}
+        run: flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ inputs.build_number }}
       
       - name: Upload Release APK to Artifacts
         uses: actions/upload-artifact@v4
@@ -124,18 +162,31 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
           
-      - name: Upload to Release
+      # Create and update tags
+      - name: Create and update tags
+        run: |
+          # Create version tag
+          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+          
+          # Create/Update latest-release tag
+          git tag -a latest-release -m "Latest Release v${{ inputs.version }}"
+          git push origin latest-release --force
+          
+      # Upload to Release
+      - name: Create/Update Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: latest-release
+          name: "Latest Release v${{ inputs.version }}"
           files: build/app/outputs/flutter-apk/app-release.apk
-          name: Release ${{ github.ref_name }}
           body: |
-            Coffee Mapper Android Release ${{ github.ref_name }}
+            Coffee Mapper Android Release v${{ inputs.version }}
             
-            This is an automated release build of Coffee Mapper Android.
+            This is the latest release build of Coffee Mapper Android.
             
-            **Version:** ${{ github.ref_name }}
-            **Build Number:** ${{ github.run_number }}
-            **Release Date:** ${{ github.event.release.published_at }}
+            **Version:** v${{ inputs.version }}
+            **Build Number:** ${{ inputs.build_number }}
+            **Release Date:** ${{ format('2024-03-{0} {1}', inputs.build_number, github.event.head_commit.timestamp) }}
             
             Please download the APK and test thoroughly before distribution. 
