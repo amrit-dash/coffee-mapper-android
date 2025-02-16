@@ -113,6 +113,11 @@ jobs:
       # Create/Update Debug Release and Tags
       - name: Update debug tags
         run: |
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Login to GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
           
           # Delete existing latest-debug tag if it exists
@@ -139,4 +144,4 @@ jobs:
             
             ⚠️ This is a development build and should be used for testing purposes only.
             
-            _Last updated: ${{ format('2024-03-{0} {1}', github.run_number, github.event.head_commit.timestamp) }}_ 
+            _Last updated: $(date '+%Y-%m-%d %H:%M:%S')_ 

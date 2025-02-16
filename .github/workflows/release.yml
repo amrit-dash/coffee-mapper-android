@@ -28,12 +28,17 @@ jobs:
       # Clean up existing tags
       - name: Clean up old tags
         run: |
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Login to GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
           
           # Delete old release tags
           for tag in $(git tag -l "v1.*"); do
             git tag -d $tag
-            git push origin :refs/tags/$tag
+            git push origin :refs/tags/$tag || true
           done
           
           # Delete latest-release tag if it exists
@@ -165,9 +170,13 @@ jobs:
       # Create and update tags
       - name: Create and update tags
         run: |
+          # Configure Git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
           # Create version tag
           git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
-          git push origin "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}" --force
           
           # Create/Update latest-release tag
           git tag -a latest-release -m "Latest Release v${{ inputs.version }}"
@@ -187,6 +196,6 @@ jobs:
             
             **Version:** v${{ inputs.version }}
             **Build Number:** ${{ inputs.build_number }}
-            **Release Date:** ${{ format('2024-03-{0} {1}', inputs.build_number, github.event.head_commit.timestamp) }}
+            **Release Date:** $(date '+%Y-%m-%d %H:%M:%S')
             
             Please download the APK and test thoroughly before distribution. 
