@@ -117,19 +117,14 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Login to GitHub CLI
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-          
-          # Delete existing latest-debug tag if it exists
-          git tag -d latest-debug || true
-          git push origin :refs/tags/latest-debug || true
-          
           # Create/Update latest-debug tag
-          git tag -a latest-debug -m "Latest Debug Build"
+          git tag -a latest-debug -m "Latest Debug Build" -f
           git push origin latest-debug --force
         
       - name: Create/Update Debug Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: latest-debug
           name: "Latest Debug Build"
