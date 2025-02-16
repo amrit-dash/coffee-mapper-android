@@ -155,10 +155,17 @@ jobs:
           
       # Create and update tags
       - name: Create and update tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure Git
+          # Configure Git with token
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          
+          # Create version tag
+          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}" -f
+          git push origin "v${{ inputs.version }}" --force
           
           # Create/Update latest-release tag
           git tag -a latest-release -m "Latest Release Build" -f
