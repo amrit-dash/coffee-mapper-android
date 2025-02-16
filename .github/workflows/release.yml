@@ -153,25 +153,17 @@ jobs:
           path: build/app/outputs/flutter-apk/coffee_mapper_${{ inputs.version }}.apk
           retention-days: 30
           
-      # Create and update tags
-      - name: Create and update tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Create/Update Debug Release and Tags
+      - name: Update debug tags
         run: |
-          # Configure Git with token
+          # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
-          
-          # Create version tag
-          git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}" -f
-          git push origin "v${{ inputs.version }}" --force
           
           # Create/Update latest-release tag
           git tag -a latest-release -m "Latest Release Build" -f
           git push origin latest-release --force
-          
-      # Upload to Release
+        
       - name: Create/Update Release
         uses: softprops/action-gh-release@v2
         env:
