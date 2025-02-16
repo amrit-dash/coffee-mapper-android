@@ -59,9 +59,22 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
+          cache-key: flutter-:os:-:channel:-:version:-:arch:-:hash:-${{ hashFiles('**/pubspec.lock') }}
+          cache-path: ${{ runner.tool_cache }}/flutter/cache
+      
+      # Cache pub dependencies
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PUB_CACHE }}
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
       
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          flutter pub cache repair
         
       - name: Create firebase_options.dart
         run: |
@@ -182,6 +195,6 @@ jobs:
             
             **Version:** v${{ inputs.version }}
             **Build Number:** ${{ github.run_number }}
-            **Release Date:** $(date +'%Y-%m-%d %H:%M:%S')
+            **Release Date:** $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
             
             Please download the APK and test thoroughly before distribution. 
