@@ -182,6 +182,6 @@ jobs:
             
             **Version:** v${{ inputs.version }}
             **Build Number:** ${{ github.run_number }}
-            **Release Date:** ${{ github.event.head_commit.timestamp }}
+            **Release Date:** $(date +'%Y-%m-%d %H:%M:%S')
             
             Please download the APK and test thoroughly before distribution. 
