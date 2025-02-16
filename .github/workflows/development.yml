@@ -129,7 +129,6 @@ jobs:
           tag_name: latest-debug
           name: "Latest Debug Build"
           files: build/app/outputs/flutter-apk/app-debug.apk
-          prerelease: true
           body: |
             This is the latest debug build of Coffee Mapper Android.
             
