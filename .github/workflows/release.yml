@@ -16,6 +16,9 @@ env:
   FLUTTER_VERSION: '3.29.0'
   PUB_CACHE: ~/.pub-cache
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Release APK
