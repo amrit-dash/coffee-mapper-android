@@ -13,6 +13,7 @@ env:
   FLUTTER_VERSION: '3.29.0'
   PUB_CACHE_DIR: ~/.pub-cache
   KEYSTORE_PATH: ~/.android/debug.keystore
+  TZ: 'Asia/Kolkata'
 
 permissions:
   contents: write
@@ -22,6 +23,10 @@ jobs:
     name: Build Debug APK
     runs-on: ubuntu-latest
     environment: development
+    
+    env:
+      PUBSPEC_VERSION: ''
+      BUILD_DATE: ''
     
     steps:
       - uses: actions/checkout@v4
@@ -140,8 +145,9 @@ jobs:
       - name: Extract Version
         id: version
         run: |
-          PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
-          echo "PUBSPEC_VERSION=${PUBSPEC_VERSION}" >> $GITHUB_ENV
+          VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "PUBSPEC_VERSION=$VERSION" >> $GITHUB_ENV
           
       - name: Build Debug APK
         run: |
@@ -163,7 +169,8 @@ jobs:
       - name: Get Current Date
         id: date
         run: |
-          echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+          echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_OUTPUT
+          echo "BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
           
       - name: Update debug tag
         run: |

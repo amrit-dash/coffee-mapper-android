@@ -16,6 +16,7 @@ env:
   FLUTTER_VERSION: '3.29.0'
   PUB_CACHE_DIR: ~/.pub-cache
   KEYSTORE_PATH: ~/.android/debug.keystore
+  TZ: 'Asia/Kolkata'
 
 permissions:
   contents: write
@@ -25,6 +26,9 @@ jobs:
     name: Build Release APK
     runs-on: ubuntu-latest
     environment: production
+    
+    env:
+      BUILD_DATE: ''
     
     steps:
       - uses: actions/checkout@v4
@@ -131,12 +135,19 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      - name: Print Debug Keystore Fingerprints
+      - name: Print Keystore Fingerprints
         run: |
           echo "Debug Keystore SHA-1:"
           keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
           echo "Debug Keystore SHA-256:"
           keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+          
+          if [ -f "android/app/release.jks" ]; then
+            echo -e "\nRelease Keystore SHA-1:"
+            keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
+            echo "Release Keystore SHA-256:"
+            keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
+          fi
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
@@ -165,7 +176,8 @@ jobs:
       - name: Get Current Date
         id: date
         run: |
-          echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+          echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_OUTPUT
+          echo "BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
           
       - name: Update release tag
         run: |
