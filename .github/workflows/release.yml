@@ -181,17 +181,17 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      - name: Print Keystore Fingerprints
-        run: |
-          echo "Debug Keystore SHA-1:"
-          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-          echo "Debug Keystore SHA-256:"
-          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
-          
-          echo -e "\nRelease Keystore SHA-1:"
-          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
-          echo "Release Keystore SHA-256:"
-          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
+      # - name: Print Keystore Fingerprints
+      #   run: |
+      #     echo "Debug Keystore SHA-1:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+      #     echo "Debug Keystore SHA-256:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+      #     
+      #     echo -e "\nRelease Keystore SHA-1:"
+      #     keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
+      #     echo "Release Keystore SHA-256:"
+      #     keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
@@ -241,10 +241,10 @@ jobs:
           body: |
             Coffee Mapper Android Release v${{ inputs.version }}
             
-            This is the latest release build of Coffee Mapper Android.
+            Given below are the details of the latest release build of Coffee Mapper APK.
             
             **Version:** v${{ inputs.version }}
             **Build Number:** ${{ github.run_number }}
             **Release Date:** ${{ env.BUILD_DATE }}
             
-            Please download the APK and test thoroughly before distribution. 
+            This is the [OFFICIAL] Build of the app and can be updated to existing to previous versions.
