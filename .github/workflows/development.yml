@@ -11,6 +11,8 @@ on:
 
 env:
   FLUTTER_VERSION: '3.29.0'
+  PUB_CACHE_DIR: ~/.pub-cache
+  KEYSTORE_PATH: ~/.android/debug.keystore
 
 permissions:
   contents: write
@@ -57,7 +59,7 @@ jobs:
           cache-key: flutter-linux-${{ env.FLUTTER_VERSION }}
           cache-path: ${{ runner.tool_cache }}/flutter
           pub-cache-key: flutter-pub-linux-${{ env.FLUTTER_VERSION }}
-          pub-cache-path: ${{ env.PUB_CACHE }}
+          pub-cache-path: ${{ env.PUB_CACHE_DIR }}
       
       - name: Install dependencies
         run: flutter pub get
@@ -88,12 +90,22 @@ jobs:
         run: |
           echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-dev.json
           cp android/app/google-services-dev.json android/app/google-services.json
-      
-      - name: Create debug keystore
+
+      # Restore debug keystore from cache
+      - name: Restore Debug Keystore
+        id: restore-keystore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-${{ runner.os }}
+          
+      # Create debug keystore only if not restored from cache
+      - name: Create Debug Keystore
+        if: steps.restore-keystore.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/.android
           keytool -genkeypair \
-            -keystore ~/.android/debug.keystore \
+            -keystore ${{ env.KEYSTORE_PATH }} \
             -storepass android \
             -keypass android \
             -alias androiddebugkey \
@@ -103,12 +115,20 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US" \
             -v
             
+      # Save debug keystore to cache if newly created
+      - name: Save Debug Keystore
+        if: steps.restore-keystore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-${{ runner.os }}
+            
       - name: Print Debug Keystore Fingerprints
         run: |
           echo "Debug Keystore SHA-1:"
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
           echo "Debug Keystore SHA-256:"
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
@@ -117,17 +137,20 @@ jobs:
         run: |
           sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
         
-      - name: Build Debug APK
+      - name: Extract Version
+        id: version
         run: |
           PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
-          echo "PUBSPEC_VERSION=$PUBSPEC_VERSION" >> $GITHUB_ENV
-          flutter build apk --debug --build-name=$PUBSPEC_VERSION --build-number=${{ github.run_number }}
+          echo "PUBSPEC_VERSION=${PUBSPEC_VERSION}" >> $GITHUB_ENV
+          
+      - name: Build Debug APK
+        run: |
+          flutter build apk --debug --build-name=${{ env.PUBSPEC_VERSION }} --build-number=${{ github.run_number }}
           
       - name: Rename Debug APK
         run: |
-          PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
           cd build/app/outputs/flutter-apk
-          mv app-debug.apk "coffee_mapper_dev_${PUBSPEC_VERSION}.apk"
+          mv app-debug.apk "coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk"
           ls -la  # List directory contents to verify rename
       
       - name: Upload Debug APK
@@ -137,9 +160,10 @@ jobs:
           path: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
           retention-days: 7
           
-      - name: Get current date
+      - name: Get Current Date
         id: date
-        run: echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+        run: |
+          echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
           
       - name: Update debug tag
         run: |
