@@ -51,20 +51,24 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-          cache-key: flutter-:os:-:channel:-:version:-:arch:-:hash:-${{ hashFiles('**/pubspec.lock') }}
-          cache-path: ${{ runner.tool_cache }}/flutter/cache
+          cache-key: "flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}"
+          cache-path: "${{ runner.tool_cache }}/flutter"
       
       # Cache pub dependencies
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
-          path: ${{ env.PUB_CACHE }}
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          path: |
+            ${{ env.PUB_CACHE }}
+            .dart_tool
+            build
+          key: "pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}"
           restore-keys: |
-            ${{ runner.os }}-pub-
+            pub-${{ runner.os }}-
       
       - name: Install dependencies
         run: |
+          flutter clean
           flutter pub get
           flutter pub cache repair
         
@@ -109,12 +113,24 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US" \
             -v
+            
+      # Print Debug SHA-1
+      - name: Print Debug SHA-1
+        run: |
+          echo "Debug SHA-1 Fingerprint:"
+          echo "===================="
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "===================="
+          echo "Add this SHA-1 to your Google Maps API key configuration in the Google Cloud Console"
       
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
       - name: Build Debug APK
-        run: flutter build apk --debug --build-name=1.0.0 --build-number=${{ github.run_number }}
+        run: |
+          # Get version from pubspec.yaml
+          PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          flutter build apk --debug --build-name=$PUBSPEC_VERSION --build-number=${{ github.run_number }}
       
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -122,6 +138,13 @@ jobs:
           name: debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+          
+      # Get current date in IST
+      - name: Get current date
+        id: date
+        run: |
+          echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+          echo "PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)" >> $GITHUB_ENV
           
       # Create/Update Debug Release and Tags
       - name: Update debug tags
@@ -140,15 +163,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: latest-debug
-          name: "Latest Debug Build"
+          name: "Latest Debug Build v${{ env.PUBSPEC_VERSION }}"
           files: build/app/outputs/flutter-apk/app-debug.apk
           body: |
             This is the latest debug build of Coffee Mapper Android.
             
+            **Version:** v${{ env.PUBSPEC_VERSION }}
             **Build Number:** ${{ github.run_number }}
-            **Commit:** ${{ github.sha }}
             **Branch:** ${{ github.ref_name }}
+            **Last Updated:** ${{ env.BUILD_DATE }}
             
-            ⚠️ This is a development build and should be used for testing purposes only.
-            
-            _Last updated: ${{ github.event.head_commit.timestamp }}_ 
+            ⚠️ This is a development build and should be used for testing purposes only. 
