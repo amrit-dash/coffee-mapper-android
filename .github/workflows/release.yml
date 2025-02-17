@@ -103,6 +103,21 @@ jobs:
           echo "${{ secrets.PROD_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-prod.json
           cp android/app/google-services-prod.json android/app/google-services.json
 
+      # Setup Release Keystore
+      - name: Setup Release Keystore
+        run: |
+          # Create the keystore directory
+          mkdir -p android/app/keystore
+          # Decode and save the release keystore
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > android/app/keystore/release.jks
+          # Create key.properties
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=keystore/release.jks
+          EOF
+
       # Restore debug keystore from cache
       - name: Restore Debug Keystore
         id: restore-keystore
@@ -142,12 +157,10 @@ jobs:
           echo "Debug Keystore SHA-256:"
           keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
           
-          if [ -f "android/app/release.jks" ]; then
-            echo -e "\nRelease Keystore SHA-1:"
-            keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
-            echo "Release Keystore SHA-256:"
-            keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
-          fi
+          echo -e "\nRelease Keystore SHA-1:"
+          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
+          echo "Release Keystore SHA-256:"
+          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
