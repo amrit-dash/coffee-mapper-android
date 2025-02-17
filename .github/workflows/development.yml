@@ -51,7 +51,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-          cache-key: "flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}"
+          cache-key: "flutter-linux-${{ env.FLUTTER_VERSION }}"
           cache-path: "${{ runner.tool_cache }}/flutter"
       
       # Cache pub dependencies
@@ -60,15 +60,14 @@ jobs:
         with:
           path: |
             ${{ env.PUB_CACHE }}
-            .dart_tool
-            build
-          key: "pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}"
+            ${{ github.workspace }}/.dart_tool
+            ${{ github.workspace }}/build
+          key: "pub-linux-${{ hashFiles('**/pubspec.lock') }}"
           restore-keys: |
-            pub-${{ runner.os }}-
+            pub-linux-
       
       - name: Install dependencies
         run: |
-          flutter clean
           flutter pub get
           flutter pub cache repair
         
@@ -114,15 +113,6 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US" \
             -v
             
-      # Print Debug SHA-1
-      - name: Print Debug SHA-1
-        run: |
-          echo "Debug SHA-1 Fingerprint:"
-          echo "===================="
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-          echo "===================="
-          echo "Add this SHA-1 to your Google Maps API key configuration in the Google Cloud Console"
-      
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
@@ -131,12 +121,18 @@ jobs:
           # Get version from pubspec.yaml
           PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
           flutter build apk --debug --build-name=$PUBSPEC_VERSION --build-number=${{ github.run_number }}
+          
+      # Rename Debug APK
+      - name: Rename Debug APK
+        run: |
+          cd build/app/outputs/flutter-apk
+          mv app-debug.apk "coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk"
       
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
           retention-days: 7
           
       # Get current date in IST
@@ -163,8 +159,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: latest-debug
-          name: "Latest Debug Build v${{ env.PUBSPEC_VERSION }}"
-          files: build/app/outputs/flutter-apk/app-debug.apk
+          name: "Latest Debug Build"
+          files: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
           body: |
             This is the latest debug build of Coffee Mapper Android.
             

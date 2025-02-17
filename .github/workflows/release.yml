@@ -59,7 +59,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-          cache-key: "flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}"
+          cache-key: "flutter-linux-${{ env.FLUTTER_VERSION }}"
           cache-path: "${{ runner.tool_cache }}/flutter"
       
       # Cache pub dependencies
@@ -68,17 +68,22 @@ jobs:
         with:
           path: |
             ${{ env.PUB_CACHE }}
-            .dart_tool
-            build
-          key: "pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}"
+            ${{ github.workspace }}/.dart_tool
+            ${{ github.workspace }}/build
+          key: "pub-linux-${{ hashFiles('**/pubspec.lock') }}"
           restore-keys: |
-            pub-${{ runner.os }}-
+            pub-linux-
       
       - name: Install dependencies
         run: |
-          flutter clean
           flutter pub get
           flutter pub cache repair
+          
+      # Update version in pubspec.yaml
+      - name: Update version in pubspec.yaml
+        run: |
+          sed -i "s/^version: .*/version: ${{ inputs.version }}/" pubspec.yaml
+          cat pubspec.yaml | grep "^version:"
         
       - name: Create firebase_options.dart
         run: |
@@ -134,39 +139,6 @@ jobs:
             exit 1
           fi
           
-      # Print Release SHA-1
-      - name: Print Release SHA-1
-        run: |
-          echo "Release SHA-1 Fingerprint:"
-          echo "===================="
-          keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} | grep "SHA1:"
-          echo "===================="
-          echo "Add this SHA-1 to your Google Maps API key configuration in the Google Cloud Console"
-      
-      # Create debug keystore
-      - name: Create debug keystore
-        run: |
-          mkdir -p ~/.android
-          keytool -genkeypair \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -keypass android \
-            -alias androiddebugkey \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -v
-            
-      # Print Debug SHA-1
-      - name: Print Debug SHA-1
-        run: |
-          echo "Debug SHA-1 Fingerprint:"
-          echo "===================="
-          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-          echo "===================="
-          echo "Add this SHA-1 to your Google Maps API key configuration in the Google Cloud Console"
-      
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
@@ -176,14 +148,7 @@ jobs:
           sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
         
       - name: Build Release APK
-        run: |
-          # Validate version numbers
-          PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
-          if [ "$PUBSPEC_VERSION" != "${{ inputs.version }}" ]; then
-            echo "Error: Version mismatch! pubspec.yaml has version $PUBSPEC_VERSION but workflow input is ${{ inputs.version }}"
-            exit 1
-          fi
-          flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+        run: flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
       
       # Rename APK file
       - name: Rename Release APK
