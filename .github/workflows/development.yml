@@ -34,6 +34,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      # Cache Flutter dependencies
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PUB_CACHE_DIR }}
+            ${{ runner.tool_cache }}/flutter
+            build/
+            .dart_tool/
+            .pub-cache/
+            ~/.gradle/caches/
+            ~/.gradle/wrapper/
+            android/.gradle
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+            ${{ runner.os }}-
+      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -54,6 +72,12 @@ jobs:
           android.enableJetifier=true
           android.suppressUnsupportedCompileSdk=35
           org.gradle.java.version=17
+          org.gradle.daemon=true
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          org.gradle.configureondemand=true
+          kotlin.incremental=true
+          android.enableR8.fullMode=true
           EOL
       
       - name: Setup Android SDK
