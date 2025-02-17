@@ -54,6 +54,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
+          cache-key: flutter-linux-${{ env.FLUTTER_VERSION }}
+          cache-path: ${{ runner.tool_cache }}/flutter
+          pub-cache-key: flutter-pub-linux-${{ env.FLUTTER_VERSION }}
+          pub-cache-path: ${{ env.PUB_CACHE }}
       
       - name: Install dependencies
         run: flutter pub get
@@ -98,6 +102,13 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US" \
             -v
+            
+      - name: Print Debug Keystore Fingerprints
+        run: |
+          echo "Debug Keystore SHA-1:"
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "Debug Keystore SHA-256:"
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos

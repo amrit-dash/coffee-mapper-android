@@ -57,6 +57,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
+          cache-key: flutter-linux-${{ env.FLUTTER_VERSION }}
+          cache-path: ${{ runner.tool_cache }}/flutter
+          pub-cache-key: flutter-pub-linux-${{ env.FLUTTER_VERSION }}
+          pub-cache-path: ${{ env.PUB_CACHE }}
       
       - name: Install dependencies
         run: flutter pub get
@@ -129,6 +133,18 @@ jobs:
             echo "Error: key.properties file not created"
             exit 1
           fi
+          
+      - name: Print Keystore Fingerprints
+        run: |
+          echo "Debug Keystore SHA-1:"
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "Debug Keystore SHA-256:"
+          keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+          
+          echo "\nRelease Keystore SHA-1:"
+          keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
+          echo "Release Keystore SHA-256:"
+          keytool -list -v -keystore android/app/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
           
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
