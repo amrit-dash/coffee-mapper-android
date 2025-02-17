@@ -14,7 +14,6 @@ on:
 
 env:
   FLUTTER_VERSION: '3.29.0'
-  PUB_CACHE: ~/.pub-cache
 
 permissions:
   contents: write
@@ -35,23 +34,11 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       
-      # Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      # Accept Android SDK licenses
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
-      
-      # Configure Gradle
-      - name: Configure Gradle
-        run: |
-          echo "org.gradle.java.home=$(which java | xargs readlink -f | sed 's/\/bin\/java//')" >> android/gradle.properties
-      
-      # Set JAVA_HOME for Gradle
-      - name: Set JAVA_HOME
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -59,27 +46,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-          cache-key: "flutter-linux-${{ env.FLUTTER_VERSION }}"
-          cache-path: "${{ runner.tool_cache }}/flutter"
-      
-      # Cache pub dependencies
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.PUB_CACHE }}
-            ${{ github.workspace }}/.dart_tool
-            ${{ github.workspace }}/build
-          key: "pub-linux-${{ hashFiles('**/pubspec.lock') }}"
-          restore-keys: |
-            pub-linux-
       
       - name: Install dependencies
-        run: |
-          flutter pub get
-          flutter pub cache repair
-          
-      # Update version in pubspec.yaml
+        run: flutter pub get
+        
       - name: Update version in pubspec.yaml
         run: |
           sed -i "s/^version: .*/version: ${{ inputs.version }}/" pubspec.yaml
@@ -112,13 +82,23 @@ jobs:
           echo "${{ secrets.PROD_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-prod.json
           cp android/app/google-services-prod.json android/app/google-services.json
       
-      # Setup Keystore
       - name: Setup Keystore
         run: |
-          # Create the keystore directory
-          mkdir -p android/app
+          # Create debug keystore
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -v
           
-          # Decode and save the release keystore
+          # Create the keystore directory and setup release keystore
+          mkdir -p android/app
           echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > android/app/release.jks
           
           # Create key.properties with release signing config
@@ -142,41 +122,45 @@ jobs:
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
-      # Update Kotlin version to fix compatibility issues
       - name: Update Kotlin version
         run: |
           sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
         
       - name: Build Release APK
-        run: flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
-      
-      # Rename APK file
+        run: |
+          # Verify version update in pubspec.yaml
+          CURRENT_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          if [ "$CURRENT_VERSION" != "${{ inputs.version }}" ]; then
+            echo "Error: Version mismatch. pubspec.yaml has $CURRENT_VERSION but workflow input is ${{ inputs.version }}"
+            exit 1
+          fi
+          flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          
       - name: Rename Release APK
         run: |
           cd build/app/outputs/flutter-apk
           mv app-release.apk "coffee_mapper_${{ inputs.version }}.apk"
+          ls -la  # List directory contents to verify rename
+          if [ ! -f "coffee_mapper_${{ inputs.version }}.apk" ]; then
+            echo "Error: APK file not found after rename"
+            exit 1
+          fi
       
-      - name: Upload Release APK to Artifacts
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/coffee_mapper_${{ inputs.version }}.apk
           retention-days: 30
           
-      # Get current date in IST
       - name: Get current date
         id: date
-        run: |
-          echo "RELEASE_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+        run: echo "RELEASE_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
           
-      # Create/Update Debug Release and Tags
-      - name: Update debug tags
+      - name: Update release tag
         run: |
-          # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create/Update latest-release tag
           git tag -a latest-release -m "Latest Release Build" -f
           git push origin latest-release --force
         

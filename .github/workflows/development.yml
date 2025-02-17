@@ -11,7 +11,6 @@ on:
 
 env:
   FLUTTER_VERSION: '3.29.0'
-  PUB_CACHE: ~/.pub-cache
 
 permissions:
   contents: write
@@ -32,18 +31,11 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       
-      # Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
-      # Accept Android SDK licenses
       - name: Accept Android SDK licenses
         run: yes | sdkmanager --licenses
-      
-      # Configure Gradle
-      - name: Configure Gradle
-        run: |
-          echo "org.gradle.java.home=$(which java | xargs readlink -f | sed 's/\/bin\/java//')" >> android/gradle.properties
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -51,25 +43,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-          cache-key: "flutter-linux-${{ env.FLUTTER_VERSION }}"
-          cache-path: "${{ runner.tool_cache }}/flutter"
-      
-      # Cache pub dependencies
-      - name: Cache pub dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.PUB_CACHE }}
-            ${{ github.workspace }}/.dart_tool
-            ${{ github.workspace }}/build
-          key: "pub-linux-${{ hashFiles('**/pubspec.lock') }}"
-          restore-keys: |
-            pub-linux-
       
       - name: Install dependencies
-        run: |
-          flutter pub get
-          flutter pub cache repair
+        run: flutter pub get
         
       - name: Create firebase_options.dart
         run: |
@@ -98,7 +74,6 @@ jobs:
           echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-dev.json
           cp android/app/google-services-dev.json android/app/google-services.json
       
-      # Create debug keystore
       - name: Create debug keystore
         run: |
           mkdir -p ~/.android
@@ -116,17 +91,22 @@ jobs:
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
         
+      - name: Update Kotlin version
+        run: |
+          sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
+        
       - name: Build Debug APK
         run: |
-          # Get version from pubspec.yaml
           PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          echo "PUBSPEC_VERSION=$PUBSPEC_VERSION" >> $GITHUB_ENV
           flutter build apk --debug --build-name=$PUBSPEC_VERSION --build-number=${{ github.run_number }}
           
-      # Rename Debug APK
       - name: Rename Debug APK
         run: |
+          PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
           cd build/app/outputs/flutter-apk
-          mv app-debug.apk "coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk"
+          mv app-debug.apk "coffee_mapper_dev_${PUBSPEC_VERSION}.apk"
+          ls -la  # List directory contents to verify rename
       
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -135,21 +115,14 @@ jobs:
           path: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
           retention-days: 7
           
-      # Get current date in IST
       - name: Get current date
         id: date
-        run: |
-          echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
-          echo "PUBSPEC_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)" >> $GITHUB_ENV
+        run: echo "BUILD_DATE=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
           
-      # Create/Update Debug Release and Tags
-      - name: Update debug tags
+      - name: Update debug tag
         run: |
-          # Configure Git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create/Update latest-debug tag
           git tag -a latest-debug -m "Latest Debug Build" -f
           git push origin latest-debug --force
         
