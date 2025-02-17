@@ -5,6 +5,19 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2024-03-19
+
+### Fixed
+- Resolved GitHub Actions cache conflicts in CI/CD pipelines
+- Fixed context access permissions in GitHub workflows
+- Improved Gradle caching mechanism for faster builds
+- Enhanced workflow permissions for better GitHub Actions integration
+
+### Changed
+- Updated Kotlin version to 1.9.23
+- Optimized CI/CD cache configurations
+- Improved build system stability
+
 ## [1.1.0] - 2024-02-14
 
 ### Added

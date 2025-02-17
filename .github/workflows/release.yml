@@ -20,6 +20,9 @@ env:
 
 permissions:
   contents: write
+  actions: write
+  checks: write
+  id-token: write
 
 jobs:
   build:
@@ -39,6 +42,10 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: 'gradle'
+          cache-dependency-path: |
+            android/gradle/wrapper/gradle-wrapper.properties
+            android/build.gradle
+            android/app/build.gradle
       
       - name: Configure Gradle for CI
         run: |
