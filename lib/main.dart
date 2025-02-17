@@ -17,19 +17,28 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase with the correct options
-  if (Firebase.apps.isEmpty) {
+  // Initialize Logger first
+  AppLogger.init();
+  final logger = AppLogger.getLogger('main');
+
+  try {
+    // Initialize Firebase with the correct options
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+  } catch (e) {
+    // If Firebase is already initialized, we can safely continue
+    if (Firebase.apps.isNotEmpty) {
+      logger.fine('Firebase already initialized');
+    } else {
+      logger.severe('Failed to initialize Firebase: $e');
+      rethrow;
+    }
   }
 
   // Initialize Crashlytics
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
-
-  // Initialize Logger
-  AppLogger.init();
 
   // Enable App Check
   await FirebaseAppCheck.instance.activate(

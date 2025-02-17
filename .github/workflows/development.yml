@@ -31,6 +31,17 @@ jobs:
           java-version: '17'
           cache: 'gradle'
       
+      - name: Configure Gradle for CI
+        run: |
+          # Create CI-specific gradle.properties
+          cat > android/gradle.properties << 'EOL'
+          org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.suppressUnsupportedCompileSdk=35
+          org.gradle.java.version=17
+          EOL
+      
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         
