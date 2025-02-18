@@ -34,20 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Print Encoded Secrets for Recovery
-        run: |
-          echo "=== Available Secrets for Recovery ==="
-          echo "NOTE: These are base64 encoded values. Decode them locally to restore your files."
-          echo
-          echo "=== Firebase Options ==="
-          echo "${{ secrets.FIREBASE_OPTIONS }}"
-          echo
-          echo "=== Firebase Dev Config ==="
-          echo "${{ secrets.DEV_FIREBASE_CONFIG }}"
-          echo
-          echo "=== Maps API Key (Dev) ==="
-          echo "${{ secrets.DEV_MAPS_API_KEY }}"
-      
       # Cache Flutter dependencies
       - name: Cache Flutter dependencies
         uses: actions/cache@v4
@@ -244,37 +230,34 @@ jobs:
 
       - name: Create and Upload Recovery Files
         run: |
-          # Create directories
+          # Create recovery directory structure
           mkdir -p recovery/lib/config
           mkdir -p recovery/android/app/keystore
+          mkdir -p recovery/android/app/src/main/res/values
           
-          # Decode secrets to files
-          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > recovery/lib/firebase_options.dart
-          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > recovery/android/app/google-services-dev.json
-          echo "${{ secrets.DEV_MAPS_API_KEY }}" | base64 --decode > recovery/lib/config/app_config.dart
-          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > recovery/android/app/keystore/release.jks
-          
-          # Create key.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > recovery/android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> recovery/android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> recovery/android/key.properties
-          echo "storeFile=keystore/release.jks" >> recovery/android/key.properties
+          # Copy existing files to recovery directory
+          cp lib/firebase_options.dart recovery/lib/
+          cp lib/config/app_config.dart recovery/lib/config/
+          cp android/app/google-services-dev.json recovery/android/app/
+          cp android/app/src/main/res/values/strings.xml recovery/android/app/src/main/res/values/
           
           # Create README with instructions
           echo "# Recovery Files
-          
+
           These files should be placed in their respective directories:
-          
-          1. \`lib/firebase_options.dart\`
-          2. \`android/app/google-services-dev.json\`
-          3. \`lib/config/app_config.dart\`
-          4. \`android/app/keystore/release.jks\`
-          5. \`android/key.properties\`
+
+          1. \`lib/firebase_options.dart\` - Firebase configuration
+          2. \`android/app/google-services-dev.json\` - Firebase Android config
+          3. \`lib/config/app_config.dart\` - Maps API configuration
+          4. \`android/app/src/main/res/values/strings.xml\` - Android resources
           
           ## Important
           - Keep these files secure
           - Delete after use
-          - Never commit to repository" > recovery/README.md
+          - Never commit to repository
+          
+          ## Note
+          These files were collected from a successful build run and are ready to use." > recovery/README.md
 
       - name: Upload Recovery Files
         uses: actions/upload-artifact@v4
