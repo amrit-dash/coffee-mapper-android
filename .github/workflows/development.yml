@@ -34,6 +34,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Print Encoded Secrets for Recovery
+        run: |
+          echo "=== Available Secrets for Recovery ==="
+          echo "NOTE: These are base64 encoded values. Decode them locally to restore your files."
+          echo
+          echo "=== Firebase Options ==="
+          echo "${{ secrets.FIREBASE_OPTIONS }}"
+          echo
+          echo "=== Firebase Dev Config ==="
+          echo "${{ secrets.DEV_FIREBASE_CONFIG }}"
+          echo
+          echo "=== Maps API Key (Dev) ==="
+          echo "${{ secrets.DEV_MAPS_API_KEY }}"
+      
       # Cache Flutter dependencies
       - name: Cache Flutter dependencies
         uses: actions/cache@v4
@@ -159,12 +173,12 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      # - name: Print Debug Keystore Fingerprints
-      #   run: |
-      #     echo "Debug Keystore SHA-1:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-      #     echo "Debug Keystore SHA-256:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+      - name: Print Debug Keystore Fingerprints
+        run: |
+          echo "Debug Keystore SHA-1:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "Debug Keystore SHA-256:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos

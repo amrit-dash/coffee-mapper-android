@@ -181,17 +181,17 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      # - name: Print Keystore Fingerprints
-      #   run: |
-      #     echo "Debug Keystore SHA-1:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-      #     echo "Debug Keystore SHA-256:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
-      #     
-      #     echo -e "\nRelease Keystore SHA-1:"
-      #     keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
-      #     echo "Release Keystore SHA-256:"
-      #     keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
+      - name: Print Keystore Fingerprints
+        run: |
+          echo "Debug Keystore SHA-1:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "Debug Keystore SHA-256:"
+          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+          
+          echo -e "\nRelease Keystore SHA-1:"
+          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA1:"
+          echo "Release Keystore SHA-256:"
+          keytool -list -v -keystore android/app/keystore/release.jks -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
