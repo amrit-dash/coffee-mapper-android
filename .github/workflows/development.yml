@@ -242,47 +242,43 @@ jobs:
             
             ⚠️ This is a development build and should be used for testing purposes only.
 
-      - name: Print Encoded Secrets for Recovery
+      - name: Create and Upload Recovery Files
         run: |
-          echo "=== Available Secrets for Recovery ==="
-          echo "NOTE: These are base64 encoded values. Decode them locally to restore your files."
-          echo
-          echo "=== Firebase Options ==="
-          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 > firebase_options.b64
-          cat firebase_options.b64
-          echo
-          echo "=== Firebase Dev Config ==="
-          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 > firebase_config.b64
-          cat firebase_config.b64
-          echo
-          echo "=== Maps API Key (Dev) ==="
-          echo "${{ secrets.DEV_MAPS_API_KEY }}" | base64 > maps_api.b64
-          cat maps_api.b64
-          echo
-          echo "=== Release Keystore ==="
-          echo "${{ secrets.RELEASE_KEYSTORE }}" > release_keystore.b64
-          cat release_keystore.b64
-          echo
-          echo "=== Key Properties ==="
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" | base64 > keystore_password.b64
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" | base64 > key_password.b64
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" | base64 > key_alias.b64
-          cat keystore_password.b64
-          cat key_password.b64
-          cat key_alias.b64
+          # Create directories
+          mkdir -p recovery/lib/config
+          mkdir -p recovery/android/app/keystore
           
-          echo -e "\n=== File Structure ==="
-          echo "1. lib/firebase_options.dart (from firebase_options.b64)"
-          echo "2. android/app/google-services-dev.json (from firebase_config.b64)"
-          echo "3. lib/config/app_config.dart (from maps_api.b64)"
-          echo "4. android/app/keystore/release.jks (from release_keystore.b64)"
-          echo "5. android/key.properties (combine keystore_password.b64, key_password.b64, key_alias.b64)"
+          # Decode secrets to files
+          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > recovery/lib/firebase_options.dart
+          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > recovery/android/app/google-services-dev.json
+          echo "${{ secrets.DEV_MAPS_API_KEY }}" | base64 --decode > recovery/lib/config/app_config.dart
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > recovery/android/app/keystore/release.jks
           
-          echo -e "\nTo decode locally:"
-          echo "cat firebase_options.b64 | base64 --decode > lib/firebase_options.dart"
-          echo "cat firebase_config.b64 | base64 --decode > android/app/google-services-dev.json"
-          echo "cat maps_api.b64 | base64 --decode > maps_api.txt"
-          echo "cat release_keystore.b64 | base64 --decode > android/app/keystore/release.jks"
-          echo "cat keystore_password.b64 | base64 --decode >> android/key.properties"
-          echo "cat key_password.b64 | base64 --decode >> android/key.properties"
-          echo "cat key_alias.b64 | base64 --decode >> android/key.properties" 
+          # Create key.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > recovery/android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> recovery/android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> recovery/android/key.properties
+          echo "storeFile=keystore/release.jks" >> recovery/android/key.properties
+          
+          # Create README with instructions
+          echo "# Recovery Files
+          
+          These files should be placed in their respective directories:
+          
+          1. \`lib/firebase_options.dart\`
+          2. \`android/app/google-services-dev.json\`
+          3. \`lib/config/app_config.dart\`
+          4. \`android/app/keystore/release.jks\`
+          5. \`android/key.properties\`
+          
+          ## Important
+          - Keep these files secure
+          - Delete after use
+          - Never commit to repository" > recovery/README.md
+
+      - name: Upload Recovery Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-files
+          path: recovery/
+          retention-days: 1 
