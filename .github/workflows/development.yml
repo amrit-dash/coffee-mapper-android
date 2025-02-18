@@ -1,0 +1,229 @@
+name: Development Build
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.29.0'
+  PUB_CACHE_DIR: ~/.pub-cache
+  KEYSTORE_PATH: ~/.android/debug.keystore
+  TZ: 'Asia/Kolkata'
+
+permissions:
+  contents: write
+  actions: write
+  checks: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    environment: development
+    
+    env:
+      PUBSPEC_VERSION: ''
+      BUILD_DATE: ''
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Cache Flutter dependencies
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.PUB_CACHE_DIR }}
+            ${{ runner.tool_cache }}/flutter
+            build/
+            .dart_tool/
+            .pub-cache/
+            ~/.gradle/caches/
+            ~/.gradle/wrapper/
+            android/.gradle
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+            ${{ runner.os }}-
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: |
+            android/gradle/wrapper/gradle-wrapper.properties
+            android/build.gradle
+            android/app/build.gradle
+      
+      - name: Configure Gradle for CI
+        run: |
+          # Create CI-specific gradle.properties
+          cat > android/gradle.properties << 'EOL'
+          org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.suppressUnsupportedCompileSdk=35
+          org.gradle.java.version=17
+          org.gradle.daemon=true
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          org.gradle.configureondemand=true
+          kotlin.incremental=true
+          android.enableR8.fullMode=true
+          EOL
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+          cache-key: flutter-linux-${{ env.FLUTTER_VERSION }}
+          cache-path: ${{ runner.tool_cache }}/flutter
+          pub-cache-key: flutter-pub-linux-${{ env.FLUTTER_VERSION }}
+          pub-cache-path: ${{ env.PUB_CACHE_DIR }}
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Create firebase_options.dart
+        run: |
+          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 --decode > lib/firebase_options.dart
+        
+      - name: Create app_config.dart
+        run: |
+          cat > lib/config/app_config.dart << 'EOL'
+          class AppConfig {
+            static const String googleMapsApiKey = '${{ secrets.DEV_MAPS_API_KEY }}';
+          }
+          EOL
+
+      - name: Create strings.xml with Maps API Key
+        run: |
+          mkdir -p android/app/src/main/res/values
+          cat > android/app/src/main/res/values/strings.xml << 'EOL'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="maps_api_key">${{ secrets.DEV_MAPS_API_KEY }}</string>
+          </resources>
+          EOL
+
+      - name: Setup Firebase Configuration
+        run: |
+          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 --decode > android/app/google-services-dev.json
+          cp android/app/google-services-dev.json android/app/google-services.json
+
+      # Restore debug keystore from cache
+      - name: Restore Debug Keystore
+        id: restore-keystore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-${{ runner.os }}
+          
+      # Create debug keystore only if not restored from cache
+      - name: Create Debug Keystore
+        if: steps.restore-keystore.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ${{ env.KEYSTORE_PATH }} \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -v
+            
+      # Save debug keystore to cache if newly created
+      - name: Save Debug Keystore
+        if: steps.restore-keystore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-${{ runner.os }}
+            
+      # - name: Print Debug Keystore Fingerprints
+      #   run: |
+      #     echo "Debug Keystore SHA-1:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+      #     echo "Debug Keystore SHA-256:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+            
+      - name: Analyze project source
+        run: flutter analyze --no-fatal-infos
+        
+      - name: Update Kotlin version
+        run: |
+          sed -i 's/ext.kotlin_version = ".*"/ext.kotlin_version = "1.9.23"/' android/build.gradle
+        
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "PUBSPEC_VERSION=$VERSION" >> $GITHUB_ENV
+          
+      - name: Build Debug APK
+        run: |
+          flutter build apk --debug --build-name=${{ env.PUBSPEC_VERSION }} --build-number=${{ github.run_number }}
+          
+      - name: Rename Debug APK
+        run: |
+          cd build/app/outputs/flutter-apk
+          mv app-debug.apk "coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk"
+          ls -la  # List directory contents to verify rename
+      
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
+          retention-days: 7
+          
+      - name: Get Current Date
+        id: date
+        run: |
+          echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_OUTPUT
+          echo "BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+          
+      - name: Update debug tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a latest-debug -m "Latest Debug Build" -f
+          git push origin latest-debug --force
+        
+      - name: Create/Update Debug Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: latest-debug
+          name: "Latest Debug Build"
+          files: build/app/outputs/flutter-apk/coffee_mapper_dev_${{ env.PUBSPEC_VERSION }}.apk
+          body: |
+            This is the latest debug build of Coffee Mapper Android.
+            
+            **Version:** v${{ env.PUBSPEC_VERSION }}
+            **Build Number:** ${{ github.run_number }}
+            **Branch:** ${{ github.ref_name }}
+            **Last Updated:** ${{ env.BUILD_DATE }}
+            
+            ⚠️ This is a development build and should be used for testing purposes only. 
