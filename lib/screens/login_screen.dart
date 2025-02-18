@@ -1,9 +1,9 @@
+import 'package:coffee_mapper/providers/admin_provider.dart';
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,22 +34,24 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final providerContext = context;
       final navigatorContext = context;
-      
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
-      
+
       // Check admin status
       if (!mounted) return;
       if (providerContext.mounted) {
-        await providerContext.read<AdminProvider>().checkAdminStatus(userCredential.user!.email!);
+        await providerContext
+            .read<AdminProvider>()
+            .checkAdminStatus(userCredential.user!.email!);
       }
-      
+
       // Navigate to the main menu screen
       if (navigatorContext.mounted) {
-        Navigator.pushReplacement(
-            navigatorContext,
+        Navigator.pushReplacement(navigatorContext,
             MaterialPageRoute(builder: (context) => const HomeScreen()));
       }
     } on FirebaseAuthException catch (e) {
@@ -82,9 +84,11 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false; // Hide loader
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false; // Hide loader
+        });
+      }
     }
   }
 
@@ -174,10 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Theme.of(context).colorScheme.secondary,
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.error),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.error),
             ),
             errorStyle: TextStyle(
               fontFamily: 'Gilroy-Medium',
@@ -215,7 +221,9 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         TextFormField(
           style: TextStyle(
-            color: (_obscurePassword) ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.secondary,
+            color: (_obscurePassword)
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.secondary,
           ),
           autovalidateMode: AutovalidateMode.onUserInteraction,
           controller: _passwordController,
@@ -227,10 +235,12 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Theme.of(context).colorScheme.secondary,
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.error),
             ),
             focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.error),
             ),
             errorStyle: TextStyle(
               fontFamily: 'Gilroy-Medium',
@@ -261,15 +271,16 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 25,
               width: 25,
               colorFilter: ColorFilter.mode(
-                (_obscurePassword) 
-                  ? Theme.of(context).colorScheme.error 
-                  : Theme.of(context).colorScheme.secondary,
+                (_obscurePassword)
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.secondary,
                 BlendMode.srcIn,
               ),
             ),
             onPressed: () {
               setState(() {
-                _obscurePassword = !_obscurePassword; // Toggle the _obscurePassword variable
+                _obscurePassword =
+                    !_obscurePassword; // Toggle the _obscurePassword variable
               });
             },
           ),
@@ -285,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // 1. Check if email is provided in the input field
         final email = _emailController.text;
         final snackbarContext = context;
-        
+
         if (email.isEmpty) {
           if (!mounted) return;
           ScaffoldMessenger.of(snackbarContext).showSnackBar(
@@ -310,7 +321,8 @@ class _LoginScreenState extends State<LoginScreen> {
           if (!mounted) return;
           if (snackbarContext.mounted) {
             ScaffoldMessenger.of(snackbarContext).showSnackBar(
-              SnackBar(content: Text(e.message ?? 'Failed to send reset email')),
+              SnackBar(
+                  content: Text(e.message ?? 'Failed to send reset email')),
             );
           }
         }
@@ -331,12 +343,12 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       height: 150,
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 35),
-
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.error,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0), // Reduce corner radius to 8 pixels
+            borderRadius:
+                BorderRadius.circular(10.0), // Reduce corner radius to 8 pixels
           ),
           elevation: 0,
           textStyle: const TextStyle(
@@ -347,19 +359,19 @@ class _LoginScreenState extends State<LoginScreen> {
         onPressed: _signInWithEmailAndPassword,
         child: _isLoading // Conditionally render the loader or text
             ? SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            strokeWidth: 2,
-          ),
-        )
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  strokeWidth: 2,
+                ),
+              )
             : Text(
-          'Let\'s Begin!',
-          style: TextStyle(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              fontSize: 19),
-        ),
+                'Let\'s Begin!',
+                style: TextStyle(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    fontSize: 19),
+              ),
       ),
     );
   }

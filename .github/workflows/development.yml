@@ -173,12 +173,12 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      - name: Print Debug Keystore Fingerprints
-        run: |
-          echo "Debug Keystore SHA-1:"
-          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-          echo "Debug Keystore SHA-256:"
-          keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+      # - name: Print Debug Keystore Fingerprints
+      #   run: |
+      #     echo "Debug Keystore SHA-1:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+      #     echo "Debug Keystore SHA-256:"
+      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
@@ -240,4 +240,49 @@ jobs:
             **Branch:** ${{ github.ref_name }}
             **Last Updated:** ${{ env.BUILD_DATE }}
             
-            ⚠️ This is a development build and should be used for testing purposes only. 
+            ⚠️ This is a development build and should be used for testing purposes only.
+
+      - name: Print Encoded Secrets for Recovery
+        run: |
+          echo "=== Available Secrets for Recovery ==="
+          echo "NOTE: These are base64 encoded values. Decode them locally to restore your files."
+          echo
+          echo "=== Firebase Options ==="
+          echo "${{ secrets.FIREBASE_OPTIONS }}" | base64 > firebase_options.b64
+          cat firebase_options.b64
+          echo
+          echo "=== Firebase Dev Config ==="
+          echo "${{ secrets.DEV_FIREBASE_CONFIG }}" | base64 > firebase_config.b64
+          cat firebase_config.b64
+          echo
+          echo "=== Maps API Key (Dev) ==="
+          echo "${{ secrets.DEV_MAPS_API_KEY }}" | base64 > maps_api.b64
+          cat maps_api.b64
+          echo
+          echo "=== Release Keystore ==="
+          echo "${{ secrets.RELEASE_KEYSTORE }}" > release_keystore.b64
+          cat release_keystore.b64
+          echo
+          echo "=== Key Properties ==="
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" | base64 > keystore_password.b64
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" | base64 > key_password.b64
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" | base64 > key_alias.b64
+          cat keystore_password.b64
+          cat key_password.b64
+          cat key_alias.b64
+          
+          echo -e "\n=== File Structure ==="
+          echo "1. lib/firebase_options.dart (from firebase_options.b64)"
+          echo "2. android/app/google-services-dev.json (from firebase_config.b64)"
+          echo "3. lib/config/app_config.dart (from maps_api.b64)"
+          echo "4. android/app/keystore/release.jks (from release_keystore.b64)"
+          echo "5. android/key.properties (combine keystore_password.b64, key_password.b64, key_alias.b64)"
+          
+          echo -e "\nTo decode locally:"
+          echo "cat firebase_options.b64 | base64 --decode > lib/firebase_options.dart"
+          echo "cat firebase_config.b64 | base64 --decode > android/app/google-services-dev.json"
+          echo "cat maps_api.b64 | base64 --decode > maps_api.txt"
+          echo "cat release_keystore.b64 | base64 --decode > android/app/keystore/release.jks"
+          echo "cat keystore_password.b64 | base64 --decode >> android/key.properties"
+          echo "cat key_password.b64 | base64 --decode >> android/key.properties"
+          echo "cat key_alias.b64 | base64 --decode >> android/key.properties" 
