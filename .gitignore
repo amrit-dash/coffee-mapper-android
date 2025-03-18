@@ -9,6 +9,7 @@
 .history
 .svn/
 migrate_working_dir/
+**/scripts/
 
 # IntelliJ related
 *.iml
@@ -53,6 +54,7 @@ pubspec.yaml.bak
 **/android/app/google-services*.json
 **/android/app/src/*/res/values/strings.xml
 **/android/key.properties
+**/android/app/.cxx/
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -101,7 +103,8 @@ key.properties
 # API Keys and Sensitive Resources
 **/android/app/src/*/res/values/strings.xml
 **/android/key.properties
-lib/config/app_config.dart
+**/lib/config/app_config.dart
+**/lib/config/
 
 # Environment specific files
 *.env
@@ -157,4 +160,4 @@ mason-lock.json
 **/android/key.properties
 *.jks
 google-services*.json
-lib/config/app_config.dart
+**/app_config.dart

@@ -22,7 +22,9 @@ class InteractiveShadeViewScreen extends StatefulWidget {
 class _InteractiveShadeViewScreenState
     extends State<InteractiveShadeViewScreen> {
   final _logger = AppLogger.getLogger('InteractiveShadeView');
+  // ignore: undefined_class
   late StreamSubscription<DocumentSnapshot> _latestInsightsSubscription;
+  // ignore: undefined_class
   late StreamSubscription<DocumentSnapshot> _formDropdownsSubscription;
   DocumentSnapshot? _latestInsights;
   DocumentSnapshot? _formDropDownData;

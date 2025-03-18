@@ -21,6 +21,7 @@ class ViewSavedRegionsScreen extends StatefulWidget {
 
 class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
   final _logger = AppLogger.getLogger('ViewSavedRegions');
+  // ignore: undefined_class
   StreamSubscription<QuerySnapshot>? _regionsSubscription;
   List<DocumentSnapshot> _regions = [];
   bool _maybeNoItems = false;

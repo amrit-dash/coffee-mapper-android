@@ -163,8 +163,8 @@ class _FormFieldsState extends State<FormFields> {
   }
 
   Future<void> _handleFieldClick(BuildContext context) async {
-    final isAdmin = context.read<AdminProvider>().isAdmin;
-    if (!isAdmin || _areFieldsEditable) return;
+    final isSuperAdmin = context.read<AdminProvider>().isSuperAdmin;
+    if (!isSuperAdmin || _areFieldsEditable) return;
 
     final result = await showDialog<bool>(
       context: context,
@@ -194,7 +194,7 @@ class _FormFieldsState extends State<FormFields> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = context.watch<AdminProvider>().isAdmin;
+    final isSuperAdmin = context.watch<AdminProvider>().isSuperAdmin;
 
     return Form(
       //autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -257,7 +257,7 @@ class _FormFieldsState extends State<FormFields> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     InkWell(
-                      onTap: isAdmin ? () => _handleFieldClick(context) : null,
+                      onTap: isSuperAdmin ? () => _handleFieldClick(context) : null,
                       child: _buildFormField(
                         context,
                         fieldName: 'Boundary',
@@ -272,7 +272,7 @@ class _FormFieldsState extends State<FormFields> {
                       ),
                     ),
                     InkWell(
-                      onTap: isAdmin ? () => _handleFieldClick(context) : null,
+                      onTap: isSuperAdmin ? () => _handleFieldClick(context) : null,
                       child: _buildFormField(
                         context,
                         fieldName: 'Area',
@@ -382,37 +382,40 @@ class _FormFieldsState extends State<FormFields> {
                   validation: true,
                 ),
                 const SizedBox(height: 15),
-                //Coffee Fields
+                
+                //Shade Field
+                if (_isShade) ...[
+                  // Shade Type
+                  _buildFormField(context,
+                      fieldName: 'Shade Type',
+                      fieldType: 'dropDown',
+                      fieldOptions: List<String>.from(
+                          widget.formDropDownData['shadeType']),
+                      validation: true,
+                      dense: true,
+                      fieldValue: _shadeType, onChanged: (String? value) {
+                    setState(() {
+                      _shadeType = value!;
+                    });
+                  }),
+
+                  const SizedBox(height: 15),
+                ],
+
+                //Coffee Field
                 if (!_isShade) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Shade Type
-                      _buildFormField(context,
-                          fieldName: 'Shade Type',
-                          fieldType: 'dropDown',
-                          fieldOptions: List<String>.from(
-                              widget.formDropDownData['shadeType']),
-                          validation: true,
-                          dense: true,
-                          fieldValue: _shadeType, onChanged: (String? value) {
-                        setState(() {
-                          _shadeType = value!;
-                        });
-                      }),
-                      //Yield/Hectare
-                      _buildFormField(
-                        context,
-                        fieldName: 'Average Yield',
-                        fieldType: 'textInput',
-                        dataType: 'double',
-                        trailingText: 'kg/ha',
-                        validation: true,
-                        dense: true,
-                        controller: _yeildValueController,
-                      ),
-                    ],
+                  //Yield/Hectare
+                  _buildFormField(
+                    context,
+                    fieldName: 'Average Yield',
+                    fieldType: 'textInput',
+                    dataType: 'double',
+                    trailingText: 'kg/hectare',
+                    validation: true,
+                    dense: true,
+                    controller: _yeildValueController,
                   ),
+
                   const SizedBox(height: 15),
                 ],
 

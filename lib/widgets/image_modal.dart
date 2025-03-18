@@ -25,6 +25,7 @@ class _ImageModalState extends State<ImageModal> {
 
     if (_isVideo) {
       _videoController =
+          // ignore: undefined_identifier
           VideoPlayerController.networkUrl(Uri.parse(widget.mediaPath))
             ..initialize().then((_) {
               setState(() {}); // Refresh UI once the video is initialized

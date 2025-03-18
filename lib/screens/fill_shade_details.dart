@@ -61,7 +61,9 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
   final List<String> _boundaryCaptureMediaURLs = [];
 
+  // ignore: undefined_class
   late StreamSubscription<DocumentSnapshot> _dropdownSubscription;
+  // ignore: undefined_class
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isOffline = false;
   bool _noBack = false;
@@ -279,6 +281,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
   Future<void> _captureMapImage() async {
     try {
       final gmap.GoogleMapController controller = await _controller.future;
+      // ignore: undefined_class
       final Uint8List? imageBytes = await controller.takeSnapshot();
 
       if (imageBytes != null) {
