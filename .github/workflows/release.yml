@@ -204,6 +204,10 @@ jobs:
         run: |
           flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
           
+      - name: Build App Bundle (AAB)
+        run: |
+          flutter build appbundle --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          
       - name: Rename Release APK
         run: |
           cd build/app/outputs/flutter-apk
@@ -215,6 +219,13 @@ jobs:
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/coffee_mapper_${{ inputs.version }}.apk
+          retention-days: 30
+          
+      - name: Upload App Bundle (AAB)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
           
       - name: Get Current Date
