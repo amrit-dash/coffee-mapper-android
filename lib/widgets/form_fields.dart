@@ -257,7 +257,9 @@ class _FormFieldsState extends State<FormFields> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     InkWell(
-                      onTap: isSuperAdmin ? () => _handleFieldClick(context) : null,
+                      onTap: isSuperAdmin
+                          ? () => _handleFieldClick(context)
+                          : null,
                       child: _buildFormField(
                         context,
                         fieldName: 'Boundary',
@@ -272,7 +274,9 @@ class _FormFieldsState extends State<FormFields> {
                       ),
                     ),
                     InkWell(
-                      onTap: isSuperAdmin ? () => _handleFieldClick(context) : null,
+                      onTap: isSuperAdmin
+                          ? () => _handleFieldClick(context)
+                          : null,
                       child: _buildFormField(
                         context,
                         fieldName: 'Area',
@@ -372,17 +376,7 @@ class _FormFieldsState extends State<FormFields> {
                   ],
                 ),
                 const SizedBox(height: 15),
-                // Plant Variety
-                _buildFormField(
-                  context,
-                  fieldName: 'Plant Variety',
-                  fieldType: 'multiSelect',
-                  fieldOptions: List<String>.from(
-                      widget.formDropDownData['plantVariety']),
-                  validation: true,
-                ),
-                const SizedBox(height: 15),
-                
+
                 //Shade Field
                 if (_isShade) ...[
                   // Shade Type
@@ -404,6 +398,16 @@ class _FormFieldsState extends State<FormFields> {
 
                 //Coffee Field
                 if (!_isShade) ...[
+                  // Plant Variety
+                  _buildFormField(
+                    context,
+                    fieldName: 'Plant Variety',
+                    fieldType: 'multiSelect',
+                    fieldOptions: List<String>.from(
+                        widget.formDropDownData['plantVariety']),
+                    validation: true,
+                  ),
+                  const SizedBox(height: 15),
                   //Yield/Hectare
                   _buildFormField(
                     context,
@@ -415,7 +419,6 @@ class _FormFieldsState extends State<FormFields> {
                     dense: true,
                     controller: _yeildValueController,
                   ),
-
                   const SizedBox(height: 15),
                 ],
 
