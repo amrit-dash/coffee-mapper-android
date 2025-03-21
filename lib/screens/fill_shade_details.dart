@@ -180,14 +180,6 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
   // Function to save data to Firestore
   Future<void> _saveShadeDataToFirestore() async {
-    /*
-    if(_isOffline) {
-      await _saveShadeDataToFirestore();
-      return;
-    }
-
-     */
-
     try {
       final firestore = FirebaseFirestore.instance;
       final user = FirebaseAuth.instance.currentUser!;
@@ -210,7 +202,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         }
       }
 
-      if (_imgURL == "NA") {
+      if (_imgURL == "NA" && _selectedCategory != "Coffee Nursery") {
         await _captureMapImage();
       }
 
@@ -254,19 +246,46 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
       String documentName = '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
 
-      await firestore
-          .collection('savedRegions')
-          .doc(documentName)
-          .set(regionData)
-          .onError((e, _) => _logger.severe('Error writing document', e));
+      // For coffee nurseries, save to a different collection with only non-null values
+      if (_selectedCategory == "Coffee Nursery") {
+        final nurseryData = {
+          'district': _selectedDistrict,
+          'block': _selectedTehsil,
+          'panchayat': _selectedPanchayat,
+          'village': _selectedVillage,
+          'regionName': _regionNameController.text,
+          'regionCategory': _selectedCategory,
+          'savedOn': FieldValue.serverTimestamp(),
+          'updatedOn': FieldValue.serverTimestamp(),
+          'savedBy': user.email,
+          'area': widget.area,
+          'perimeter': widget.perimeter,
+          'boundaryImageURLs': _boundaryCaptureMediaURLs,
+          'polygonPoints': widget.polygonPoints
+              .map((point) => '${point.latitude},${point.longitude}')
+              .toList(),
+        };
 
-      await firestore
-          .collection('savedRegions')
-          .doc(documentName)
-          .collection('regionInsights')
-          .doc("latestInformation")
-          .set(regionInsightsData)
-          .onError((e, _) => _logger.severe('Error writing document', e));
+        await firestore
+            .collection('coffeeNursery')
+            .doc(documentName)
+            .set(nurseryData)
+            .onError((e, _) => _logger.severe('Error writing document', e));
+      } else {
+        await firestore
+            .collection('savedRegions')
+            .doc(documentName)
+            .set(regionData)
+            .onError((e, _) => _logger.severe('Error writing document', e));
+
+        await firestore
+            .collection('savedRegions')
+            .doc(documentName)
+            .collection('regionInsights')
+            .doc("latestInformation")
+            .set(regionInsightsData)
+            .onError((e, _) => _logger.severe('Error writing document', e));
+      }
 
       setState(() {
         _noBack = true;
@@ -279,6 +298,14 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
   // Function to capture the map image
   Future<void> _captureMapImage() async {
+    // Skip map image capture for coffee nurseries
+    if (_selectedCategory == "Coffee Nursery") {
+      setState(() {
+        _imgURL = "NA";
+      });
+      return;
+    }
+
     try {
       final gmap.GoogleMapController controller = await _controller.future;
       // ignore: undefined_class
@@ -613,7 +640,8 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
             "New Shade",
             "Non Bearing Coffee",
             "Bearing Coffee",
-            "Private Plantation Coffee"
+            "Private Plantation Coffee",
+            "Coffee Nursery"
           ], // Category options
           onChanged: (value) {
             setState(() {
@@ -834,8 +862,14 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
             if (value.length < 3) {
               return 'Region Name needs to have at least 3 characters';
             }
-            if (value.length > 15) {
-              return 'Region Name cannot be more than 15 characters';
+            if (_selectedCategory == "Coffee Nursery") {
+              if (value.length > 25) {
+                return 'Nursery Name cannot be more than 25 characters';
+              }
+            } else {
+              if (value.length > 15) {
+                return 'Region Name cannot be more than 15 characters';
+              }
             }
             return null; // Return null if the input is valid
           },

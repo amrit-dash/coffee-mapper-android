@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 75),
+                      const SizedBox(height: 65),
                       const Text(
                         'Hello,',
                         style: TextStyle(
@@ -55,8 +55,20 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildMenuButton(
                         context,
-                        icon: Icons.layers_outlined,
+                        icon: Icons.fact_check_outlined,
                         title: 'Update plantation details',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ViewSavedRegionsScreen()),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildMenuButton(
+                        context,
+                        icon: Icons.eco_outlined,
+                        title: 'Update coffee nursery',
                         onTap: () {
                           Navigator.push(
                             context,
