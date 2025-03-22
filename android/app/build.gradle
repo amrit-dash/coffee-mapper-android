@@ -72,6 +72,15 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Explicitly disable AD_ID collection
+        manifestPlaceholders += [
+            ADID_COLLECTION_ENABLED: "false"
+        ]
+
+        // Restrict to phone form factor
+        resConfig "en"
+        resConfigs "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"
     }
 
     signingConfigs {

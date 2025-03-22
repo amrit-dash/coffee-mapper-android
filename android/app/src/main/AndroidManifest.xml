@@ -1,4 +1,19 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Explicitly remove AD_ID permission -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+
+    <!-- Screen compatibility - restrict to phones -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="false"
+        android:xlargeScreens="false"
+        android:requiresSmallestWidthDp="320"
+        android:maxSmallestWidthDp="599"
+        android:compatibleWidthLimitDp="599"
+        android:resizeable="false" />
 
     <!-- Declare camera hardware (set required to false if optional) -->
     <uses-feature

@@ -161,3 +161,4 @@ mason-lock.json
 *.jks
 google-services*.json
 **/app_config.dart
+**/devtools_options.yaml
