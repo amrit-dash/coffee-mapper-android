@@ -15,6 +15,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import 'image_modal.dart';
+import 'image_capture_widget.dart';
+import 'video_capture_widget.dart';
 
 class FormFields extends StatefulWidget {
   final DocumentSnapshot regionDocument;
@@ -1343,9 +1345,28 @@ class _FormFieldsState extends State<FormFields> {
         (isGallery) ? Icons.image_outlined : Icons.photo_camera_back,
         (isGallery) ? 'Choose an Image' : 'Take a Picture',
         () async {
-          await _pickMedia(context,
-              source: (isGallery) ? ImageSource.gallery : ImageSource.camera,
-              isVideo: false);
+          if (isGallery) {
+            await _pickMedia(context,
+                source: ImageSource.gallery,
+                isVideo: false);
+          } else {
+            // Show custom image capture widget
+            if (!mounted) return;
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => ImageCaptureWidget(
+                onImageCaptured: (String filePath) {
+                  Navigator.pop(context);
+                  _handleImageCaptured(context, filePath);
+                },
+                onCancel: () {
+                  Navigator.pop(context);
+                  _logger.info('Image capture cancelled by user');
+                },
+              ),
+            );
+          }
         },
       ),
       _pickerOption(
@@ -1355,9 +1376,28 @@ class _FormFieldsState extends State<FormFields> {
             : Icons.video_camera_back_outlined,
         (isGallery) ? 'Choose a Video' : 'Record a Video',
         () async {
-          await _pickMedia(context,
-              source: (isGallery) ? ImageSource.gallery : ImageSource.camera,
-              isVideo: true);
+          if (isGallery) {
+            await _pickMedia(context,
+                source: ImageSource.gallery,
+                isVideo: true);
+          } else {
+            // Show custom video capture widget
+            if (!mounted) return;
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => VideoCaptureWidget(
+                onVideoRecorded: (String filePath) {
+                  Navigator.pop(context);
+                  _handleVideoRecorded(context, filePath);
+                },
+                onCancel: () {
+                  Navigator.pop(context);
+                  _logger.info('Video capture cancelled by user');
+                },
+              ),
+            );
+          }
         },
       ),
     ]);
@@ -1607,6 +1647,196 @@ class _FormFieldsState extends State<FormFields> {
           SnackBar(content: Text('Failed to save data. Please try again.')),
         );
       }
+    }
+  }
+
+  Future<void> _handleVideoRecorded(BuildContext context, String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Video file does not exist');
+      }
+
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        throw Exception('Video file is empty');
+      }
+
+      if (fileSize > 50 * 1024 * 1024) {
+        throw Exception('Video file too large (max 50MB)');
+      }
+
+      // Store context and mounted state before async operations
+      final uploadContext = context;
+      bool wasWidgetMounted = mounted;
+
+      // Create a new reference to the widget's document data
+      final nurseryName = widget.regionDocument['regionName'];
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final mediaFileName = 'plantations/$nurseryName/regionMedia/${timestamp}_video.mp4';
+
+      if (wasWidgetMounted) {
+        setState(() {
+          _isImageUploading = true;
+        });
+      }
+
+      final storageRef = FirebaseStorage.instance.ref().child(mediaFileName);
+
+      final metadata = SettableMetadata(
+        contentType: 'video/mp4',
+        customMetadata: {
+          'picked-file-path': filePath,
+          'file-size': fileSize.toString(),
+          'capture-timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Add retry logic for upload
+      int retryCount = 0;
+      const maxRetries = 3;
+      String? downloadUrl;
+      
+      while (retryCount < maxRetries) {
+        try {
+          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+          
+          final uploadTask = storageRef.putFile(file, metadata);
+          await uploadTask;
+
+          downloadUrl = await storageRef.getDownloadURL();
+          _logger.info('Upload successful: $downloadUrl');
+          break; // Success, exit retry loop
+        } catch (e) {
+          retryCount++;
+          _logger.warning('Upload attempt $retryCount failed: $e');
+          
+          if (retryCount == maxRetries) {
+            rethrow; // Rethrow if all retries failed
+          }
+          // Wait before retrying
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      // Only update state if widget is still mounted
+      if (wasWidgetMounted && mounted) {
+        setState(() {
+          _isImageUploading = false;
+          if (downloadUrl != null) {
+            _mediaList.add(downloadUrl);
+            _totalMediaCount++;
+          }
+        });
+
+        // Only show snackbar if context is still valid
+        if (uploadContext.mounted) {
+          ScaffoldMessenger.of(uploadContext).showSnackBar(
+            SnackBar(
+              content: Text('Video uploaded successfully!'),
+              backgroundColor: Theme.of(uploadContext).highlightColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      _logger.severe('Error handling recorded video: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _handleImageCaptured(BuildContext context, String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Image file does not exist');
+      }
+
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        throw Exception('Image file is empty');
+      }
+
+      if (fileSize > 10 * 1024 * 1024) {
+        throw Exception('Image file too large (max 10MB)');
+      }
+
+      // Store context and mounted state before async operations
+      final uploadContext = context;
+      bool wasWidgetMounted = mounted;
+
+      // Create a new reference to the widget's document data
+      final nurseryName = widget.regionDocument['regionName'];
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final mediaFileName = 'plantations/$nurseryName/regionMedia/${timestamp}_image.jpg';
+
+      if (wasWidgetMounted) {
+        setState(() {
+          _isImageUploading = true;
+        });
+      }
+
+      final storageRef = FirebaseStorage.instance.ref().child(mediaFileName);
+
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {
+          'picked-file-path': filePath,
+          'file-size': fileSize.toString(),
+          'capture-timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Add retry logic for upload
+      int retryCount = 0;
+      const maxRetries = 3;
+      String? downloadUrl;
+      
+      while (retryCount < maxRetries) {
+        try {
+          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+          
+          final uploadTask = storageRef.putFile(file, metadata);
+          await uploadTask;
+
+          downloadUrl = await storageRef.getDownloadURL();
+          _logger.info('Upload successful: $downloadUrl');
+          break; // Success, exit retry loop
+        } catch (e) {
+          retryCount++;
+          _logger.warning('Upload attempt $retryCount failed: $e');
+          
+          if (retryCount == maxRetries) {
+            rethrow; // Rethrow if all retries failed
+          }
+          // Wait before retrying
+          await Future.delayed(Duration(seconds: 1));
+        }
+      }
+
+      // Only update state if widget is still mounted
+      if (wasWidgetMounted && mounted) {
+        setState(() {
+          _isImageUploading = false;
+          if (downloadUrl != null) {
+            _mediaList.add(downloadUrl);
+            _totalMediaCount++;
+          }
+        });
+
+        // Only show snackbar if context is still valid
+        if (uploadContext.mounted) {
+          ScaffoldMessenger.of(uploadContext).showSnackBar(
+            SnackBar(
+              content: Text('Image uploaded successfully!'),
+              backgroundColor: Theme.of(uploadContext).highlightColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      _logger.severe('Error handling captured image: $e');
+      rethrow;
     }
   }
 }

@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/providers/admin_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
+import 'package:coffee_mapper/screens/update_nursery_details.dart';
 
 class ViewCoffeeNurseriesScreen extends StatefulWidget {
   const ViewCoffeeNurseriesScreen({super.key});
@@ -250,13 +251,12 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
               Theme.of(context).scaffoldBackgroundColor.withAlpha(77),
           splashColor: Theme.of(context).primaryColor.withAlpha(102),
           onTap: () {
-            // TODO: Navigate to nursery update form
-            
-            // For now, just show a placeholder message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Nursery update form coming soon!'),
-                backgroundColor: Theme.of(context).colorScheme.error,
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UpdateNurseryDetailsScreen(
+                  nurseryDocument: document,
+                ),
               ),
             );
           },

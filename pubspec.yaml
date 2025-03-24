@@ -53,6 +53,7 @@ dependencies:
   video_player: ^2.9.2
   provider: ^6.1.2
   font_awesome_flutter: ^10.8.0
+  camera: ^0.10.5+9
 
 flutter_launcher_icons:
   android: true

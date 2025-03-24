@@ -185,12 +185,17 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser!;
 
       if (widget.shadeImagePaths.isNotEmpty) {
+
+        final String storageFolderName =  ( _selectedCategory != "Coffee Nursery" ) ? 'nurseries' : 'plantations';
+
         for (int indexCounter = 0;
             indexCounter < widget.shadeImagePaths.length;
             indexCounter++) {
           final file = File(widget.shadeImagePaths[indexCounter]);
+
           final storageRef = FirebaseStorage.instance.ref().child(
-              "plantations/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}.jpg");
+              "$storageFolderName/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}.jpg");
+          
 
           await storageRef.putFile(file);
           final downloadUrl = await storageRef.getDownloadURL();
