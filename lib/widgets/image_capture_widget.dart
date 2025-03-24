@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 
 class ImageCaptureWidget extends StatefulWidget {
@@ -22,11 +23,46 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
   CameraController? _controller;
   String? _capturedImagePath;
   bool _isPreviewMode = false;
+  bool _hasPermissions = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _checkPermissionsAndInitialize();
+  }
+
+  Future<void> _checkPermissionsAndInitialize() async {
+    try {
+      final status = await Permission.camera.request();
+      if (status.isGranted) {
+        setState(() {
+          _hasPermissions = true;
+        });
+        await _initializeCamera();
+      } else {
+        _logger.warning('Camera permission denied');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Camera permission is required to capture images'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          widget.onCancel();
+        }
+      }
+    } catch (e) {
+      _logger.severe('Error checking permissions: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error checking camera permissions'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        widget.onCancel();
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -34,6 +70,15 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         _logger.severe('No cameras available');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No cameras available on this device'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          widget.onCancel();
+        }
         return;
       }
 
@@ -54,6 +99,15 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
       if (mounted) setState(() {});
     } catch (e) {
       _logger.severe('Error initializing camera: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error initializing camera'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        widget.onCancel();
+      }
     }
   }
 
@@ -114,8 +168,16 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermissions) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     if (_controller == null || !_controller!.value.isInitialized) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
     return Scaffold(

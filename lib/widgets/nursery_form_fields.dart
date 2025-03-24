@@ -966,9 +966,6 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
     final mediaContext = context;
     bool wasWidgetMounted = mounted;
 
-    final hasPermissions = await _handlePermissions();
-    if (!hasPermissions) return;
-
     try {
       final picker = ImagePicker();
       
@@ -1139,137 +1136,6 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
           ),
         );
       }
-    }
-  }
-
-  Future<bool> _requestPermissions() async {
-    final cameraStatus = await Permission.camera.request();
-    final storageStatus = await Permission.storage.request();
-    return cameraStatus.isGranted && storageStatus.isGranted;
-  }
-
-  Future<bool> _handlePermissions() async {
-    final snackbarContext = context;
-    final status = await _requestPermissions();
-
-    if (!status && snackbarContext.mounted) {
-      ScaffoldMessenger.of(snackbarContext).showSnackBar(
-        const SnackBar(
-            content: Text('Permissions are required to access media.')),
-      );
-    }
-    return status;
-  }
-
-  void _saveButtonOnPressed() {
-    if (_formKey.currentState!.validate()) {
-      final dialogContext = context;
-      showDialog(
-        context: dialogContext,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      _saveDataToFirestore().then((_) {
-        if (!mounted) return;
-        if (dialogContext.mounted) {
-          Navigator.pop(dialogContext);
-          ScaffoldMessenger.of(dialogContext).showSnackBar(
-            SnackBar(
-              content: Text('Nursery data updated successfully!'),
-              backgroundColor: Theme.of(dialogContext).highlightColor,
-            ),
-          );
-          Navigator.pop(dialogContext);
-        }
-      }).catchError((error) {
-        if (!mounted) return;
-        if (dialogContext.mounted) {
-          Navigator.pop(dialogContext);
-          _logger.severe('Error saving data to Firestore: $error');
-          ScaffoldMessenger.of(dialogContext).showSnackBar(
-            SnackBar(content: Text('Failed to save data. Please try again.')),
-          );
-        }
-      });
-    }
-  }
-
-  Future<void> _saveDataToFirestore() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('No user logged in');
-      }
-
-      final nurseryData = {
-        'updatedOn': FieldValue.serverTimestamp(),
-        'updatedBy': user.email,
-      };
-
-      // Add area and boundary if edited by admin
-      if (_areFieldsEditable) {
-        final newAreaInSquareMeters = double.parse(_areaController.text) *
-            AreaFormatter.hectareConversion;
-        nurseryData['area'] = newAreaInSquareMeters;
-        nurseryData['perimeter'] = double.parse(_boundaryController.text);
-      }
-
-      // Add form fields if they have values
-      if (_seedlingsRaisedController.text.isNotEmpty) {
-        nurseryData['seedlingsRaised'] =
-            int.parse(_seedlingsRaisedController.text);
-      }
-      if (_seedsQuantityController.text.isNotEmpty) {
-        nurseryData['seedsQuantity'] = int.parse(_seedsQuantityController.text);
-      }
-      if (_coffeeVarietyController.text.isNotEmpty) {
-        nurseryData['coffeeVariety'] = _coffeeVarietyController.text;
-      }
-      if (_sowingDateController.text.isNotEmpty) {
-        nurseryData['sowingDate'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_sowingDateController.text));
-      }
-      if (_transplantingDateController.text.isNotEmpty) {
-        nurseryData['transplantingDate'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_transplantingDateController.text));
-      }
-      if (_firstPairLeavesController.text.isNotEmpty) {
-        nurseryData['firstPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_firstPairLeavesController.text));
-      }
-      if (_secondPairLeavesController.text.isNotEmpty) {
-        nurseryData['secondPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_secondPairLeavesController.text));
-      }
-      if (_thirdPairLeavesController.text.isNotEmpty) {
-        nurseryData['thirdPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_thirdPairLeavesController.text));
-      }
-      if (_fourthPairLeavesController.text.isNotEmpty) {
-        nurseryData['fourthPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_fourthPairLeavesController.text));
-      }
-      if (_fifthPairLeavesController.text.isNotEmpty) {
-        nurseryData['fifthPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_fifthPairLeavesController.text));
-      }
-      if (_sixthPairLeavesController.text.isNotEmpty) {
-        nurseryData['sixthPairLeaves'] = Timestamp.fromDate(
-            DateFormat("dd-MM-yy").parse(_sixthPairLeavesController.text));
-      }
-
-      // Add media URLs if any
-      if (_mediaList.isNotEmpty) {
-        nurseryData['mediaURLs'] = _mediaList;
-      }
-
-      await widget.nurseryDocument.reference.update(nurseryData);
-    } catch (e) {
-      _logger.severe('Error saving data to Firestore: $e');
-      rethrow;
     }
   }
 
@@ -1457,6 +1323,118 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
       }
     } catch (e) {
       _logger.severe('Error handling captured image: $e');
+      rethrow;
+    }
+  }
+
+  void _saveButtonOnPressed() {
+    if (_formKey.currentState!.validate()) {
+      final dialogContext = context;
+      showDialog(
+        context: dialogContext,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      _saveDataToFirestore().then((_) {
+        if (!mounted) return;
+        if (dialogContext.mounted) {
+          Navigator.pop(dialogContext);
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            SnackBar(
+              content: Text('Nursery data updated successfully!'),
+              backgroundColor: Theme.of(dialogContext).highlightColor,
+            ),
+          );
+          Navigator.pop(dialogContext);
+        }
+      }).catchError((error) {
+        if (!mounted) return;
+        if (dialogContext.mounted) {
+          Navigator.pop(dialogContext);
+          _logger.severe('Error saving data to Firestore: $error');
+          ScaffoldMessenger.of(dialogContext).showSnackBar(
+            SnackBar(content: Text('Failed to save data. Please try again.')),
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _saveDataToFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+
+      final nurseryData = {
+        'updatedOn': FieldValue.serverTimestamp(),
+        'updatedBy': user.email,
+      };
+
+      // Add area and boundary if edited by admin
+      if (_areFieldsEditable) {
+        final newAreaInSquareMeters = double.parse(_areaController.text) *
+            AreaFormatter.hectareConversion;
+        nurseryData['area'] = newAreaInSquareMeters;
+        nurseryData['perimeter'] = double.parse(_boundaryController.text);
+      }
+
+      // Add form fields if they have values
+      if (_seedlingsRaisedController.text.isNotEmpty) {
+        nurseryData['seedlingsRaised'] =
+            int.parse(_seedlingsRaisedController.text);
+      }
+      if (_seedsQuantityController.text.isNotEmpty) {
+        nurseryData['seedsQuantity'] = int.parse(_seedsQuantityController.text);
+      }
+      if (_coffeeVarietyController.text.isNotEmpty) {
+        nurseryData['coffeeVariety'] = _coffeeVarietyController.text;
+      }
+      if (_sowingDateController.text.isNotEmpty) {
+        nurseryData['sowingDate'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_sowingDateController.text));
+      }
+      if (_transplantingDateController.text.isNotEmpty) {
+        nurseryData['transplantingDate'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_transplantingDateController.text));
+      }
+      if (_firstPairLeavesController.text.isNotEmpty) {
+        nurseryData['firstPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_firstPairLeavesController.text));
+      }
+      if (_secondPairLeavesController.text.isNotEmpty) {
+        nurseryData['secondPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_secondPairLeavesController.text));
+      }
+      if (_thirdPairLeavesController.text.isNotEmpty) {
+        nurseryData['thirdPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_thirdPairLeavesController.text));
+      }
+      if (_fourthPairLeavesController.text.isNotEmpty) {
+        nurseryData['fourthPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_fourthPairLeavesController.text));
+      }
+      if (_fifthPairLeavesController.text.isNotEmpty) {
+        nurseryData['fifthPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_fifthPairLeavesController.text));
+      }
+      if (_sixthPairLeavesController.text.isNotEmpty) {
+        nurseryData['sixthPairLeaves'] = Timestamp.fromDate(
+            DateFormat("dd-MM-yy").parse(_sixthPairLeavesController.text));
+      }
+
+      // Add media URLs if any
+      if (_mediaList.isNotEmpty) {
+        nurseryData['mediaURLs'] = _mediaList;
+      }
+
+      await widget.nurseryDocument.reference.update(nurseryData);
+    } catch (e) {
+      _logger.severe('Error saving data to Firestore: $e');
       rethrow;
     }
   }

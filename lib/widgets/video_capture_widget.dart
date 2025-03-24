@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:video_player/video_player.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 
 class VideoCaptureWidget extends StatefulWidget {
@@ -29,11 +30,48 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
   Duration _recordingDuration = Duration.zero;
   Timer? _recordingTimer;
   bool _isPlaying = false;
+  bool _hasPermissions = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    _checkPermissionsAndInitialize();
+  }
+
+  Future<void> _checkPermissionsAndInitialize() async {
+    try {
+      final cameraStatus = await Permission.camera.request();
+      final microphoneStatus = await Permission.microphone.request();
+      
+      if (cameraStatus.isGranted && microphoneStatus.isGranted) {
+        setState(() {
+          _hasPermissions = true;
+        });
+        await _initializeCamera();
+      } else {
+        _logger.warning('Camera or microphone permission denied');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Camera and microphone permissions are required to record videos'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          widget.onCancel();
+        }
+      }
+    } catch (e) {
+      _logger.severe('Error checking permissions: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error checking camera and microphone permissions'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        widget.onCancel();
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -41,6 +79,15 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         _logger.severe('No cameras available');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No cameras available on this device'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          widget.onCancel();
+        }
         return;
       }
 
@@ -61,6 +108,15 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
       if (mounted) setState(() {});
     } catch (e) {
       _logger.severe('Error initializing camera: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error initializing camera'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        widget.onCancel();
+      }
     }
   }
 
@@ -185,8 +241,16 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasPermissions) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
     if (_controller == null || !_controller!.value.isInitialized) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
     return Scaffold(

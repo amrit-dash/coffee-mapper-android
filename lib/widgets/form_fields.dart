@@ -1444,10 +1444,6 @@ class _FormFieldsState extends State<FormFields> {
       {required ImageSource source, bool isVideo = false}) async {
     final mediaContext = context;
 
-    // Check permissions first
-    final hasPermissions = await _handlePermissions();
-    if (!hasPermissions) return;
-
     try {
       final picker = ImagePicker();
       final media = isVideo
@@ -1504,147 +1500,6 @@ class _FormFieldsState extends State<FormFields> {
               ],
             ),
           ),
-        );
-      }
-    }
-  }
-
-  // Request permissions dynamically
-  Future<bool> _requestPermissions() async {
-    final cameraStatus = await Permission.camera.request();
-    final storageStatus = await Permission.storage.request();
-    return cameraStatus.isGranted && storageStatus.isGranted;
-  }
-
-  Future<bool> _handlePermissions() async {
-    final snackbarContext = context;
-    final status = await _requestPermissions();
-
-    if (!status && snackbarContext.mounted) {
-      ScaffoldMessenger.of(snackbarContext).showSnackBar(
-        const SnackBar(
-            content: Text('Permissions are required to access media.')),
-      );
-    }
-    return status;
-  }
-
-  Future<void> _saveDataToFirestore() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('No user logged in');
-      }
-
-      final dialogContext = context;
-      var surveyStatus = !_isImageUploading;
-      final regionDoc = widget.regionDocument.data() as Map;
-
-      final insightsData = {
-        'savedOn': FieldValue.serverTimestamp(),
-        'savedBy': user.email,
-        'updatedOn': FieldValue.serverTimestamp(),
-        'surveyStatus': surveyStatus,
-        'shadeType': _shadeType,
-        'plotNumber': _plotNumberController.text.isEmpty
-            ? null
-            : _plotNumberController.text,
-        'khataNumber': _khataNumberController.text.isEmpty
-            ? null
-            : _khataNumberController.text,
-        'plantationYear':
-            _plantationYear != null ? int.parse(_plantationYear!) : null,
-        'beneficiaries': _beneficiariesCountController.text.isEmpty
-            ? null
-            : int.parse(_beneficiariesCountController.text),
-        'agencyName': _agencyValue,
-        'averageYield': _yeildValueController.text.isEmpty
-            ? null
-            : double.parse(_yeildValueController.text),
-        'plantVarieties': _plantVariety.isEmpty ? null : _plantVariety,
-        'survivalPercentage': _survivalPercentController.text.isEmpty
-            ? null
-            : double.parse(_survivalPercentController.text),
-        'averageHeight': _treeHeightController.text.isEmpty
-            ? null
-            : double.parse(_treeHeightController.text),
-        'mediaURLs': _mediaList.isEmpty ? null : _mediaList,
-        'regionCategory': _regionCategory,
-      };
-
-      // If admin made changes to area/boundary
-      if (_areFieldsEditable) {
-        // Store original values if not already stored
-        if (!insightsData.containsKey('originalShadeBoundary')) {
-          insightsData['originalShadeBoundary'] = regionDoc['perimeter'];
-          insightsData['originalShadeArea'] = regionDoc['area'];
-        }
-
-        // Convert hectares back to square meters and update values
-        final newAreaInSquareMeters = double.parse(_areaController.text) *
-            AreaFormatter.hectareConversion;
-        insightsData['updatedArea'] = newAreaInSquareMeters;
-        insightsData['updatedPerimeter'] =
-            double.parse(_boundaryController.text);
-      }
-
-      final regionData = {
-        'updatedOn': FieldValue.serverTimestamp(),
-        //'savedBy': user.email,
-        'surveyStatus': surveyStatus,
-        'regionCategory': _regionCategory,
-        'latestDataForDashboard': insightsData,
-      };
-
-      // If admin made changes to area/boundary
-      if (_areFieldsEditable) {
-        // Store original values if not already stored
-        if (!regionDoc.containsKey('originalShadeBoundary')) {
-          regionData['originalShadeBoundary'] = regionDoc['perimeter'];
-          regionData['originalShadeArea'] = regionDoc['area'];
-        }
-
-        // Convert hectares back to square meters and update values
-        final newAreaInSquareMeters = double.parse(_areaController.text) *
-            AreaFormatter.hectareConversion;
-        regionData['area'] = newAreaInSquareMeters;
-        regionData['perimeter'] = double.parse(_boundaryController.text);
-      }
-
-      // Update the main region document
-      await widget.regionDocument.reference.update(regionData).onError(
-          (e, _) => _handleFirestoreError('updating region document', e));
-
-      // Create a new timestamped document in regionInsights collection
-      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      await widget.regionDocument.reference
-          .collection('regionInsights')
-          .doc(timestamp)
-          .set(insightsData)
-          .onError((e, _) =>
-              _handleFirestoreError('creating new insights document', e));
-
-      // Update the latestInformation document
-      await widget.regionDocument.reference
-          .collection('regionInsights')
-          .doc('latestInformation')
-          .set(insightsData)
-          .onError((e, _) =>
-              _handleFirestoreError('updating latest information', e));
-
-      // Show success message and navigate
-      if (!mounted) return;
-      if (dialogContext.mounted) {
-        ScaffoldMessenger.of(dialogContext).showSnackBar(
-          SnackBar(content: Text('Data saved successfully!')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _logger.severe('Error saving data to Firestore: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save data. Please try again.')),
         );
       }
     }
@@ -1837,6 +1692,127 @@ class _FormFieldsState extends State<FormFields> {
     } catch (e) {
       _logger.severe('Error handling captured image: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _saveDataToFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+
+      final dialogContext = context;
+      var surveyStatus = !_isImageUploading;
+      final regionDoc = widget.regionDocument.data() as Map;
+
+      final insightsData = {
+        'savedOn': FieldValue.serverTimestamp(),
+        'savedBy': user.email,
+        'updatedOn': FieldValue.serverTimestamp(),
+        'surveyStatus': surveyStatus,
+        'shadeType': _shadeType,
+        'plotNumber': _plotNumberController.text.isEmpty
+            ? null
+            : _plotNumberController.text,
+        'khataNumber': _khataNumberController.text.isEmpty
+            ? null
+            : _khataNumberController.text,
+        'plantationYear':
+            _plantationYear != null ? int.parse(_plantationYear!) : null,
+        'beneficiaries': _beneficiariesCountController.text.isEmpty
+            ? null
+            : int.parse(_beneficiariesCountController.text),
+        'agencyName': _agencyValue,
+        'averageYield': _yeildValueController.text.isEmpty
+            ? null
+            : double.parse(_yeildValueController.text),
+        'plantVarieties': _plantVariety.isEmpty ? null : _plantVariety,
+        'survivalPercentage': _survivalPercentController.text.isEmpty
+            ? null
+            : double.parse(_survivalPercentController.text),
+        'averageHeight': _treeHeightController.text.isEmpty
+            ? null
+            : double.parse(_treeHeightController.text),
+        'mediaURLs': _mediaList.isEmpty ? null : _mediaList,
+        'regionCategory': _regionCategory,
+      };
+
+      // If admin made changes to area/boundary
+      if (_areFieldsEditable) {
+        // Store original values if not already stored
+        if (!insightsData.containsKey('originalShadeBoundary')) {
+          insightsData['originalShadeBoundary'] = regionDoc['perimeter'];
+          insightsData['originalShadeArea'] = regionDoc['area'];
+        }
+
+        // Convert hectares back to square meters and update values
+        final newAreaInSquareMeters = double.parse(_areaController.text) *
+            AreaFormatter.hectareConversion;
+        insightsData['updatedArea'] = newAreaInSquareMeters;
+        insightsData['updatedPerimeter'] =
+            double.parse(_boundaryController.text);
+      }
+
+      final regionData = {
+        'updatedOn': FieldValue.serverTimestamp(),
+        //'savedBy': user.email,
+        'surveyStatus': surveyStatus,
+        'regionCategory': _regionCategory,
+        'latestDataForDashboard': insightsData,
+      };
+
+      // If admin made changes to area/boundary
+      if (_areFieldsEditable) {
+        // Store original values if not already stored
+        if (!regionDoc.containsKey('originalShadeBoundary')) {
+          regionData['originalShadeBoundary'] = regionDoc['perimeter'];
+          regionData['originalShadeArea'] = regionDoc['area'];
+        }
+
+        // Convert hectares back to square meters and update values
+        final newAreaInSquareMeters = double.parse(_areaController.text) *
+            AreaFormatter.hectareConversion;
+        regionData['area'] = newAreaInSquareMeters;
+        regionData['perimeter'] = double.parse(_boundaryController.text);
+      }
+
+      // Update the main region document
+      await widget.regionDocument.reference.update(regionData).onError(
+          (e, _) => _handleFirestoreError('updating region document', e));
+
+      // Create a new timestamped document in regionInsights collection
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      await widget.regionDocument.reference
+          .collection('regionInsights')
+          .doc(timestamp)
+          .set(insightsData)
+          .onError((e, _) =>
+              _handleFirestoreError('creating new insights document', e));
+
+      // Update the latestInformation document
+      await widget.regionDocument.reference
+          .collection('regionInsights')
+          .doc('latestInformation')
+          .set(insightsData)
+          .onError((e, _) =>
+              _handleFirestoreError('updating latest information', e));
+
+      // Show success message and navigate
+      if (!mounted) return;
+      if (dialogContext.mounted) {
+        ScaffoldMessenger.of(dialogContext).showSnackBar(
+          SnackBar(content: Text('Data saved successfully!')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _logger.severe('Error saving data to Firestore: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save data. Please try again.')),
+        );
+      }
     }
   }
 }
