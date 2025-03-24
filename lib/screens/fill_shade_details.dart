@@ -244,7 +244,8 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         'mediaURLs': null,
       };
 
-      String documentName = '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
+      String documentName =
+          '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
 
       // For coffee nurseries, save to a different collection with only non-null values
       if (_selectedCategory == "Coffee Nursery") {
@@ -621,14 +622,6 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
           },
         ),
         const SizedBox(height: 30),
-// Region name input
-        _buildTextField(
-          context,
-          label: 'Plantation Name',
-          hint: 'Enter name of the plantation',
-          controller: _regionNameController,
-        ),
-        SizedBox(height: 30),
         // Category Input
         _buildDropdown(
           context,
@@ -648,6 +641,14 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
               _selectedCategory = value;
             });
           },
+        ),
+        SizedBox(height: 30),
+        // Region name input
+        _buildTextField(
+          context,
+          label: (_selectedCategory == 'Coffee Nursery') ? 'SHG/SC Range Name' : ((_selectedCategory!.toLowerCase().contains('coffee')) ? 'Coffee Plantation Name' : 'Project Name'),
+          hint: (_selectedCategory == 'Coffee Nursery') ? 'Enter name of the Range' : 'Enter name of the plantation',
+          controller: _regionNameController,
         ),
         SizedBox(height: 30),
 
@@ -757,7 +758,8 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           SnackBar(
                             content: const Text('Region saved successfully!'),
-                            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                            backgroundColor:
+                                Theme.of(dialogContext).colorScheme.error,
                           ),
                         );
 
@@ -774,8 +776,10 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
                         // 7. Show an error message
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
                           SnackBar(
-                            content: Text('Error saving shade data. Please try again.'),
-                            backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                            content: Text(
+                                'Error saving shade data. Please try again.'),
+                            backgroundColor:
+                                Theme.of(dialogContext).colorScheme.error,
                           ),
                         );
                       }
@@ -863,12 +867,12 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
               return 'Region Name needs to have at least 3 characters';
             }
             if (_selectedCategory == "Coffee Nursery") {
-              if (value.length > 25) {
-                return 'Nursery Name cannot be more than 25 characters';
+              if (value.length > 30) {
+                return 'Nursery Name cannot be more than 30 characters';
               }
             } else {
-              if (value.length > 15) {
-                return 'Region Name cannot be more than 15 characters';
+              if (value.length > 20) {
+                return 'Region Name cannot be more than 20 characters';
               }
             }
             return null; // Return null if the input is valid
