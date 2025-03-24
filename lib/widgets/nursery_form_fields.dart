@@ -435,7 +435,7 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Image removed from list')),
+                            content: Text('Media discarded!')),
                       );
                     } catch (e) {
                       _logger.warning('Error removing image from list: $e');

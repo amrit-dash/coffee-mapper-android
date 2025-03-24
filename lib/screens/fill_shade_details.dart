@@ -361,7 +361,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: const Text(
-                  'Shade mapped successfully!',
+                  'Area mapped successfully!',
                   style: TextStyle(
                     fontFamily: 'Gilroy-SemiBold',
                     fontSize: 23,
@@ -630,7 +630,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         // Category Input
         _buildDropdown(
           context,
-          label: 'Plantation Category',
+          label: 'Project Category',
           hint: 'Select plantation category',
           value: _selectedCategory,
           items: [
@@ -651,8 +651,8 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         // Region name input
         _buildTextField(
           context,
-          label: (_selectedCategory == 'Coffee Nursery') ? 'SHG/SC Range Name' : ((_selectedCategory!.toLowerCase().contains('coffee')) ? 'Coffee Plantation Name' : 'Project Name'),
-          hint: (_selectedCategory == 'Coffee Nursery') ? 'Enter name of the Range' : 'Enter name of the plantation',
+          label: (_selectedCategory == 'Coffee Nursery') ? 'SHG/SC Range Name' : 'Project Name',
+          hint: (_selectedCategory == 'Coffee Nursery') ? 'Enter name of the Range' : 'Enter name of the project',
           controller: _regionNameController,
         ),
         SizedBox(height: 30),

@@ -531,7 +531,7 @@ class _FormFieldsState extends State<FormFields> {
                         _isImageDeleting = false;
                       });
 
-                      _handleImageDelete("Image Deleted Successfully!");
+                      _handleImageDelete("Media Deleted Successfully!");
                     } catch (e) {
                       _handleImageDelete("", e);
                       final errorContext = context;
