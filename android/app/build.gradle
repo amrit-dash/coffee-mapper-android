@@ -69,7 +69,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
         // Explicitly disable AD_ID collection
-        manifestPlaceholders += [
+        manifestPlaceholders = [
             ADID_COLLECTION_ENABLED: "false"
         ]
     }
@@ -96,12 +96,20 @@ android {
             signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Remove debug-specific configurations in release
-            applicationIdSuffix ""
+            
+            // Remove any ad-related configurations
+            manifestPlaceholders = [
+                ADID_COLLECTION_ENABLED: "false",
+                applicationName: "com.coffee.mapper.CoffeeMapperApplication"
+            ]
         }
         debug {
             applicationIdSuffix ".dev"
             signingConfig signingConfigs.debug
+            manifestPlaceholders = [
+                ADID_COLLECTION_ENABLED: "false",
+                applicationName: "com.coffee.mapper.dev.CoffeeMapperDevApplication"
+            ]
         }
     }
 
