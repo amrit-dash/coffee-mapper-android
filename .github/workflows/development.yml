@@ -159,12 +159,28 @@ jobs:
           path: ~/.android/debug.keystore
           key: debug-keystore-${{ runner.os }}
             
-      # - name: Print Debug Keystore Fingerprints
-      #   run: |
-      #     echo "Debug Keystore SHA-1:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
-      #     echo "Debug Keystore SHA-256:"
-      #     keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA256:"
+      - name: Get and Cache SHA-1
+        id: sha1
+        run: |
+          # Get SHA-1 and store it
+          SHA1=$(keytool -list -v -keystore ${{ env.KEYSTORE_PATH }} -alias androiddebugkey -storepass android -keypass android | grep "SHA1:" | cut -d' ' -f3)
+          echo "SHA1=$SHA1" >> $GITHUB_OUTPUT
+          echo "DEBUG_SHA1=$SHA1" >> $GITHUB_ENV
+          
+          # Cache the SHA-1 value
+          echo "$SHA1" > debug_sha1.txt
+          echo "Cached SHA-1: $SHA1"
+          
+      - name: Cache SHA-1
+        uses: actions/cache/save@v4
+        with:
+          path: debug_sha1.txt
+          key: debug-sha1-${{ runner.os }}
+          
+      - name: Display SHA-1
+        run: |
+          echo "🔑 Debug Keystore SHA-1: ${{ steps.sha1.outputs.SHA1 }}"
+          echo "⚠️ Use this SHA-1 for API configuration"
             
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos

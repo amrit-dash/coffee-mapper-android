@@ -216,7 +216,7 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                       child: Icon(
                         _isPlaying ? Icons.pause : Icons.play_arrow,
                         size: 64,
-                        color: Colors.white.withValues(alpha: 179),
+                        color: Colors.white.withAlpha(179),
                       ),
                     ),
                   ),
