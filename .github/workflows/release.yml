@@ -272,6 +272,50 @@ jobs:
         run: |
           echo "date=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_OUTPUT
           echo "BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S %Z')" >> $GITHUB_ENV
+
+      - name: Create and Upload Recovery Files
+        run: |
+          # Create recovery directory structure
+          mkdir -p recovery/lib/config
+          mkdir -p recovery/android/app/keystore
+          mkdir -p recovery/android/app/src/main/res/values
+          
+          # Copy existing files to recovery directory
+          cp lib/firebase_options.dart recovery/lib/
+          cp lib/config/app_config.dart recovery/lib/config/
+          cp android/app/google-services-prod.json recovery/android/app/
+          cp android/app/src/main/res/values/strings.xml recovery/android/app/src/main/res/values/
+          cp android/app/keystore/release.jks recovery/android/app/keystore/
+          cp android/key.properties recovery/android/
+          
+          # Create README with instructions
+          echo "# Recovery Files for Production
+
+          These files should be placed in their respective directories:
+
+          1. \`lib/firebase_options.dart\` - Firebase configuration
+          2. \`android/app/google-services-prod.json\` - Firebase Android production config
+          3. \`lib/config/app_config.dart\` - Maps API configuration
+          4. \`android/app/src/main/res/values/strings.xml\` - Android resources
+          5. \`android/app/keystore/release.jks\` - Release keystore
+          6. \`android/key.properties\` - Keystore configuration
+          
+          ## Important
+          - Keep these files STRICTLY CONFIDENTIAL
+          - These files contain production credentials
+          - Delete after use
+          - Never commit to repository
+          - Store securely in a password manager
+          
+          ## Note
+          These files were collected from a successful production build run v${{ inputs.version }} and are ready to use." > recovery/README.md
+
+      - name: Upload Recovery Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-files-prod
+          path: recovery/
+          retention-days: 1
           
       - name: Update release tag
         run: |
