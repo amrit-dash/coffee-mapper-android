@@ -4,16 +4,20 @@
     <!-- Explicitly remove AD_ID permission -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
 
-    <!-- Screen compatibility - restrict to phones -->
+    <!-- Remove fake touch permission -->
+    <uses-permission android:name="android.permission.USE_FAKE_TOUCH" tools:node="remove"/>
+
+    <!-- Required features -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+    
+    <!-- Restrict to phones -->
     <supports-screens
         android:smallScreens="true"
         android:normalScreens="true"
         android:largeScreens="false"
         android:xlargeScreens="false"
         android:requiresSmallestWidthDp="320"
-        android:maxSmallestWidthDp="599"
-        android:compatibleWidthLimitDp="599"
-        android:resizeable="false" />
+        android:compatibleWidthLimitDp="600" />
 
     <!-- Declare camera hardware (set required to false if optional) -->
     <uses-feature
@@ -45,7 +49,8 @@
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
             <!-- Specifies an Android theme to apply to this Activity as soon as

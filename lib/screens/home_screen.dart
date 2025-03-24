@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'plot_polygon.dart';
 import 'view_saved_regions.dart';
+import 'view_coffee_nurseries.dart';
 import '../widgets/header.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -72,7 +73,7 @@ class HomeScreen extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ViewSavedRegionsScreen()),
+                            MaterialPageRoute(builder: (context) => const ViewCoffeeNurseriesScreen()),
                           );
                         },
                       ),
