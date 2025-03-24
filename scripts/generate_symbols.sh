@@ -99,7 +99,7 @@ done
 
 # Create zip file
 cd build
-zip -r "symbols_${BUILD_TYPE}.zip" symbols/
+zip -r -X "symbols_${BUILD_TYPE}.zip" symbols/ -x "*/.*" "*/__MACOSX/*"
 cd ..
 
 echo "Debug symbols have been generated at: build/symbols_${BUILD_TYPE}.zip" 
