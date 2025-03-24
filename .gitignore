@@ -93,6 +93,7 @@ firebase_options*.dart
 lib/config/firebase_options_*.dart
 firebase.json
 .firebase/
+.firebaserc
 firebase_options.dart
 
 # Keystore files

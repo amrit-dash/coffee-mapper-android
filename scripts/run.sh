@@ -57,13 +57,13 @@ esac
 check_device
 
 # Check if Firebase config exists
-if [ ! -f "android/app/${FIREBASE_CONFIG}" ]; then
+if [ ! -f "../android/app/${FIREBASE_CONFIG}" ]; then
     handle_error "Firebase configuration file not found: android/app/${FIREBASE_CONFIG}"
 fi
 
 # Copy Firebase configuration
 echo "Copying Firebase configuration..."
-cp "android/app/${FIREBASE_CONFIG}" "android/app/google-services.json" || handle_error "Failed to copy Firebase config"
+cp "../android/app/${FIREBASE_CONFIG}" "../android/app/google-services.json" || handle_error "Failed to copy Firebase config"
 
 # Run the app
 echo "Running app in ${ENV} environment..."

@@ -40,10 +40,18 @@ Future<void> main() async {
   await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
 
-  // Enable App Check
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity,
-  );
+  // Enable App Check with debug token for development
+  if (const bool.fromEnvironment('dart.vm.product') == false) {
+    logger.info('Initializing App Check in debug mode');
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+    );
+  } else {
+    logger.info('Initializing App Check in release mode');
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+    );
+  }
 
   // Enable offline persistence for Firestore
   FirebaseFirestore.instance.settings = const Settings(

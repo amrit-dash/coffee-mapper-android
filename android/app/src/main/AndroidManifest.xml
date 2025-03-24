@@ -3,12 +3,18 @@
 
     <!-- Explicitly remove AD_ID permission -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove"/>
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove"/>
 
     <!-- Remove fake touch permission -->
     <uses-permission android:name="android.permission.USE_FAKE_TOUCH" tools:node="remove"/>
 
     <!-- Required features -->
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />
+
+    <!-- Optional features -->
+    <uses-feature android:name="android.hardware.faketouch" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     
     <!-- Restrict to phones -->
     <supports-screens
@@ -18,11 +24,6 @@
         android:xlargeScreens="false"
         android:requiresSmallestWidthDp="320"
         android:compatibleWidthLimitDp="600" />
-
-    <!-- Declare camera hardware (set required to false if optional) -->
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
 
     <!-- Permissions for camera and external storage -->
     <uses-permission android:name="android.permission.CAMERA" />

@@ -7,7 +7,7 @@ buildscript {
     dependencies {
         // Add the dependency for the Google services Gradle plugin
         classpath 'com.google.gms:google-services:4.4.1'
-        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath "com.android.tools.build:gradle:$gradle_version"
         classpath 'com.google.firebase:firebase-crashlytics-gradle:2.9.9'
     }
 }
@@ -60,19 +60,6 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    lintOptions {
-        disable 'InvalidPackage'
-    }
-
-    aaptOptions {
-        cruncherEnabled = false
-        useNewCruncher = false
-    }
-
-    dexOptions {
-        javaMaxHeapSize "4g"
-    }
-
     defaultConfig {
         applicationId "com.coffee.mapper"
         minSdkVersion 24
@@ -109,6 +96,8 @@ android {
             signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Remove debug-specific configurations in release
+            applicationIdSuffix ""
         }
         debug {
             applicationIdSuffix ".dev"
@@ -116,41 +105,9 @@ android {
         }
     }
 
-    // This is for environment-specific google-services.json
-    android.applicationVariants.all { variant ->
-        def variantName = variant.name
-        def googleServicesFile
-        def taskName = "copy${variantName.capitalize()}GoogleServices"
-        
-        if (variantName.contains("debug")) {
-            googleServicesFile = file('google-services-dev.json')
-            println "Debug build: Using ${googleServicesFile.absolutePath}"
-        } else {
-            googleServicesFile = file('google-services-prod.json')
-            println "Release build: Using ${googleServicesFile.absolutePath}"
-        }
-        
-        tasks.register(taskName) {
-            it.doFirst {
-                if (googleServicesFile.exists()) {
-                    println "File exists: ${googleServicesFile.absolutePath}"
-                    copy {
-                        from googleServicesFile
-                        into projectDir
-                        rename { String fileName ->
-                            "google-services.json"
-                        }
-                    }
-                    println "Copied to: ${file('google-services.json').absolutePath}"
-                } else {
-                    throw new RuntimeException("Required configuration file ${googleServicesFile.absolutePath} does not exist")
-                }
-            }
-        }
-        
-        tasks.matching { it.name == "process${variantName.capitalize()}GoogleServices" }.configureEach {
-            it.dependsOn(taskName)
-        }
+    // Remove deprecated options
+    aaptOptions {
+        cruncherEnabled = false
     }
 }
 
@@ -162,11 +119,8 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:32.7.2')
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation 'com.google.firebase:firebase-analytics'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
+    implementation 'com.google.android.play:integrity:1.3.0'
 }
 
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
-apply plugin: 'kotlin-android'
