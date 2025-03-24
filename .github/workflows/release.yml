@@ -36,23 +36,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Cache Flutter dependencies
-      - name: Cache Flutter dependencies
+      # Check for dependency files
+      - name: Check dependency files
+        id: check_files
+        run: |
+          echo "pubspec_exists=$(test -f pubspec.yaml && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "gradle_exists=$(test -f android/build.gradle && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "gradle_wrapper_exists=$(test -f android/gradle/wrapper/gradle-wrapper.properties && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+      
+      # Cache Pub dependencies
+      - name: Cache Pub dependencies
+        if: steps.check_files.outputs.pubspec_exists == 'true'
         uses: actions/cache@v4
         with:
           path: |
             ${{ env.PUB_CACHE_DIR }}
-            ${{ runner.tool_cache }}/flutter
-            build/
             .dart_tool/
             .pub-cache/
+          key: ${{ runner.os }}-pub-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock', '**/pubspec.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-${{ env.FLUTTER_VERSION }}-
+            ${{ runner.os }}-pub-
+      
+      # Cache Flutter tool
+      - name: Cache Flutter tool
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/flutter
+          key: ${{ runner.os }}-flutter-tool-${{ env.FLUTTER_VERSION }}
+      
+      # Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        if: steps.check_files.outputs.gradle_exists == 'true' && steps.check_files.outputs.gradle_wrapper_exists == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
             ~/.gradle/caches/
             ~/.gradle/wrapper/
             android/.gradle
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-flutter-
-            ${{ runner.os }}-
+            ${{ runner.os }}-gradle-
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -207,6 +231,19 @@ jobs:
       - name: Build App Bundle (AAB)
         run: |
           flutter build appbundle --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          
+      - name: Generate Debug Symbols
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils
+          ./scripts/generate_symbols.sh release
+          
+      - name: Upload Debug Symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-symbols
+          path: build/symbols_release.zip
+          retention-days: 30
           
       - name: Rename Release APK
         run: |

@@ -251,6 +251,7 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
           splashColor: Theme.of(context).primaryColor.withAlpha(102),
           onTap: () {
             // TODO: Navigate to nursery update form
+            
             // For now, just show a placeholder message
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
