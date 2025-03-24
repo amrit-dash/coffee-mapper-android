@@ -297,7 +297,7 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                               color: _isRecording ? Colors.red : Colors.white,
                               width: 4,
                             ),
-                            color: _isRecording ? Colors.red.withValues(alpha: 77) : Colors.transparent,
+                            color: _isRecording ? Colors.red.withAlpha(77) : Colors.transparent,
                           ),
                         ),
                       )

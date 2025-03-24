@@ -763,14 +763,19 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
                         });
                         Navigator.pop(context);
                       },
-                      child: Text('Clear'),
+                      child: Text('Clear',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontFamily: 'Gilroy-SemiBold',
+                        ),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, selectedDate),
                       child: Text(
                         'OK',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.secondary,
+                          color: Theme.of(context).highlightColor,
                           fontFamily: 'Gilroy-SemiBold',
                         ),
                       ),
