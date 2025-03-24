@@ -149,7 +149,7 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 179),
                     ],
                   ),
                 ),

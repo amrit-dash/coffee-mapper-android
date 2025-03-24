@@ -216,7 +216,7 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                       child: Icon(
                         _isPlaying ? Icons.pause : Icons.play_arrow,
                         size: 64,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 179),
                       ),
                     ),
                   ),
@@ -272,7 +272,7 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 179),
                     ],
                   ),
                 ),
@@ -297,7 +297,7 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                               color: _isRecording ? Colors.red : Colors.white,
                               width: 4,
                             ),
-                            color: _isRecording ? Colors.red.withOpacity(0.3) : Colors.transparent,
+                            color: _isRecording ? Colors.red.withValues(alpha: 77) : Colors.transparent,
                           ),
                         ),
                       )
