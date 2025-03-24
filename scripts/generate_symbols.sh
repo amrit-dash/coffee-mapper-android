@@ -75,31 +75,35 @@ fi
 
 # Set up build directories
 BUILD_DIR="build/app/intermediates/merged_native_libs/$BUILD_TYPE/out/lib"
-OUTPUT_DIR="build/symbols"
-mkdir -p "$OUTPUT_DIR"
+TEMP_DIR="build/temp_symbols"
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
 
 # Process each architecture
 for arch in $(ls "$BUILD_DIR"); do
     echo "Processing architecture: $arch"
     
     # Create output directory for this architecture
-    mkdir -p "$OUTPUT_DIR/$arch"
+    mkdir -p "$TEMP_DIR/$arch"
     
     # Process each .so file
     for lib in $(find "$BUILD_DIR/$arch" -name "*.so"); do
-        echo "Extracting debug symbols from: $lib"
+        echo "Processing library: $lib"
         
         # Get the base name of the library
         base_name=$(basename "$lib")
         
-        # Extract debug symbols
-        "$OBJCOPY" --only-keep-debug "$lib" "$OUTPUT_DIR/$arch/$base_name"
+        # Copy the original .so file (which includes debug info)
+        cp "$lib" "$TEMP_DIR/$arch/$base_name"
     done
 done
 
-# Create zip file
-cd build
-zip -r -X "symbols_${BUILD_TYPE}.zip" symbols/ -x "*/.*" "*/__MACOSX/*"
-cd ..
+# Create zip file with the correct structure
+cd build/temp_symbols
+zip -r -X "../symbols_${BUILD_TYPE}.zip" * -x ".*" "__MACOSX" "*.debug"
+cd ../..
+
+# Clean up
+rm -rf "$TEMP_DIR"
 
 echo "Debug symbols have been generated at: build/symbols_${BUILD_TYPE}.zip" 
