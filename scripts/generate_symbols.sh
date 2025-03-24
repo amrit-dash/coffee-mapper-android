@@ -3,20 +3,47 @@
 # Exit on error
 set -e
 
-# Function to print usage
+# Function to find the NDK directory
+find_ndk_dir() {
+    # Check common NDK locations
+    local possible_locations=(
+        "$ANDROID_HOME/ndk"
+        "$ANDROID_SDK_ROOT/ndk"
+        "/usr/local/lib/android/sdk/ndk"
+        "$HOME/Library/Android/sdk/ndk"
+    )
+
+    for base_dir in "${possible_locations[@]}"; do
+        if [ -d "$base_dir" ]; then
+            # Look for any NDK version, preferring 25.2.9519653 if available
+            if [ -d "$base_dir/25.2.9519653" ]; then
+                echo "$base_dir/25.2.9519653"
+                return 0
+            else
+                # Get the latest version
+                local latest_version=$(ls -1 "$base_dir" 2>/dev/null | sort -V | tail -n 1)
+                if [ -n "$latest_version" ]; then
+                    echo "$base_dir/$latest_version"
+                    return 0
+                fi
+            fi
+        fi
+    done
+    return 1
+}
+
+# Function to display usage
 usage() {
-    echo "Usage: $0 [debug|release]"
-    echo "  debug   - Generate symbols for debug build"
-    echo "  release - Generate symbols for release build"
+    echo "Usage: $0 <build_type>"
+    echo "build_type: debug or release"
     exit 1
 }
 
-# Check if argument is provided
+# Check if build type is provided
 if [ $# -ne 1 ]; then
     usage
 fi
 
-# Set build type
 BUILD_TYPE=$1
 
 # Validate build type
@@ -24,91 +51,55 @@ if [ "$BUILD_TYPE" != "debug" ] && [ "$BUILD_TYPE" != "release" ]; then
     usage
 fi
 
-# Find the NDK directory
-find_ndk_dir() {
-    # Finally check the default SDK location on macOS
-    local default_sdk="$HOME/Library/Android/sdk"
-    if [ -d "$default_sdk/ndk/26.3.11579264" ]; then
-        echo "$default_sdk/ndk/26.3.11579264"
-        return
-    fi
-
-    echo "ERROR: Android NDK not found at $default_sdk/ndk/26.3.11579264" >&2
+# Find NDK directory
+NDK_DIR=$(find_ndk_dir)
+if [ -z "$NDK_DIR" ]; then
+    echo "ERROR: Android NDK not found"
     exit 1
-}
+fi
 
-# Set the NDK directory
-NDK_DIR=$(find_ndk_dir) || exit 1
-echo "Using NDK from: $NDK_DIR"
+echo "Found NDK at: $NDK_DIR"
 
-# Set the toolchain directory
-TOOLCHAIN_DIR="$NDK_DIR/toolchains/llvm/prebuilt/darwin-x86_64"
+# Set up paths
+TOOLCHAIN_DIR="$NDK_DIR/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64"
 if [ ! -d "$TOOLCHAIN_DIR" ]; then
     echo "ERROR: Android NDK toolchain not found at $TOOLCHAIN_DIR"
     exit 1
 fi
 
-# Set the objcopy path
 OBJCOPY="$TOOLCHAIN_DIR/bin/llvm-objcopy"
 if [ ! -f "$OBJCOPY" ]; then
     echo "ERROR: llvm-objcopy not found at $OBJCOPY"
     exit 1
 fi
 
-echo "Using objcopy from: $OBJCOPY"
-
-# Set the build directory based on build type
-if [ "$BUILD_TYPE" = "debug" ]; then
-    BUILD_DIR="build/app/intermediates/merged_native_libs/debug/out/lib"
-else
-    BUILD_DIR="build/app/intermediates/merged_native_libs/release/out/lib"
-fi
-
-echo "Looking for native libraries in: $BUILD_DIR"
-
-# Check if build directory exists
-if [ ! -d "$BUILD_DIR" ]; then
-    echo "ERROR: Build directory not found at $BUILD_DIR"
-    echo "Did you run 'flutter build apk' or 'flutter build appbundle' first?"
-    exit 1
-fi
-
-# Create output directory
+# Set up build directories
+BUILD_DIR="build/app/intermediates/merged_native_libs/$BUILD_TYPE/out/lib"
 OUTPUT_DIR="build/symbols"
 mkdir -p "$OUTPUT_DIR"
 
-# Function to process a directory
-process_directory() {
-    local dir=$1
-    local arch=$2
+# Process each architecture
+for arch in $(ls "$BUILD_DIR"); do
+    echo "Processing architecture: $arch"
     
-    echo "Processing architecture directory: $dir"
-    
-    # Create architecture-specific directory
+    # Create output directory for this architecture
     mkdir -p "$OUTPUT_DIR/$arch"
     
-    # Process all .so files
-    for so_file in "$dir"/*.so; do
-        if [ -f "$so_file" ]; then
-            echo "Processing $so_file..."
-            "$OBJCOPY" --only-keep-debug "$so_file" "$OUTPUT_DIR/$arch/$(basename "$so_file").debug"
-            echo "Successfully extracted debug symbols from $(basename "$so_file")"
-        fi
+    # Process each .so file
+    for lib in $(find "$BUILD_DIR/$arch" -name "*.so"); do
+        echo "Extracting debug symbols from: $lib"
+        
+        # Get the base name of the library
+        base_name=$(basename "$lib")
+        
+        # Extract debug symbols
+        "$OBJCOPY" --only-keep-debug "$lib" "$OUTPUT_DIR/$arch/$base_name"
     done
-}
-
-# Process each architecture
-for arch_dir in "$BUILD_DIR"/*; do
-    if [ -d "$arch_dir" ]; then
-        arch=$(basename "$arch_dir")
-        echo "Processing architecture: $arch"
-        process_directory "$arch_dir" "$arch"
-    fi
 done
 
 # Create zip file
-echo "Creating symbols zip file..."
-cd "$OUTPUT_DIR"
-zip -r "../symbols_${BUILD_TYPE}.zip" .
+cd build
+zip -r "symbols_${BUILD_TYPE}.zip" symbols/
+cd ..
 
-echo "Symbols generated successfully at build/symbols_${BUILD_TYPE}.zip" 
+echo "Debug symbols have been generated at: build/symbols_${BUILD_TYPE}.zip" 
