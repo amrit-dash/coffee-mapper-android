@@ -232,10 +232,12 @@ jobs:
         run: |
           flutter build appbundle --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
           
+      - name: Setup Android NDK
+        run: |
+          sdkmanager --install "ndk;25.2.9519653"
+          
       - name: Generate Debug Symbols
         run: |
-          sudo apt-get update
-          sudo apt-get install -y binutils
           ./scripts/generate_symbols.sh release
           
       - name: Upload Debug Symbols

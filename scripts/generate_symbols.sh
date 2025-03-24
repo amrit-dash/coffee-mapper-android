@@ -24,41 +24,53 @@ if [ "$BUILD_TYPE" != "debug" ] && [ "$BUILD_TYPE" != "release" ]; then
     usage
 fi
 
-# Check and install required tools
-check_and_install_tools() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        if ! command -v brew &> /dev/null; then
-            echo "Homebrew is required. Please install it from https://brew.sh/"
-            exit 1
-        fi
-        
-        if ! command -v /opt/homebrew/opt/binutils/bin/gobjcopy &> /dev/null; then
-            echo "Installing binutils using Homebrew..."
-            brew install binutils
-        fi
-        
-        # Set the OBJCOPY variable based on architecture and OS
-        OBJCOPY="/opt/homebrew/opt/binutils/bin/gobjcopy"
-    else
-        # Linux (Ubuntu in GitHub Actions)
-        if ! command -v objcopy &> /dev/null; then
-            echo "Installing binutils..."
-            sudo apt-get update
-            sudo apt-get install -y binutils
-        fi
-        OBJCOPY="objcopy"
+# Find the NDK directory
+find_ndk_dir() {
+    # Finally check the default SDK location on macOS
+    local default_sdk="$HOME/Library/Android/sdk"
+    if [ -d "$default_sdk/ndk/26.3.11579264" ]; then
+        echo "$default_sdk/ndk/26.3.11579264"
+        return
     fi
+
+    echo "ERROR: Android NDK not found at $default_sdk/ndk/26.3.11579264" >&2
+    exit 1
 }
 
-# Install required tools
-check_and_install_tools
+# Set the NDK directory
+NDK_DIR=$(find_ndk_dir) || exit 1
+echo "Using NDK from: $NDK_DIR"
+
+# Set the toolchain directory
+TOOLCHAIN_DIR="$NDK_DIR/toolchains/llvm/prebuilt/darwin-x86_64"
+if [ ! -d "$TOOLCHAIN_DIR" ]; then
+    echo "ERROR: Android NDK toolchain not found at $TOOLCHAIN_DIR"
+    exit 1
+fi
+
+# Set the objcopy path
+OBJCOPY="$TOOLCHAIN_DIR/bin/llvm-objcopy"
+if [ ! -f "$OBJCOPY" ]; then
+    echo "ERROR: llvm-objcopy not found at $OBJCOPY"
+    exit 1
+fi
+
+echo "Using objcopy from: $OBJCOPY"
 
 # Set the build directory based on build type
 if [ "$BUILD_TYPE" = "debug" ]; then
     BUILD_DIR="build/app/intermediates/merged_native_libs/debug/out/lib"
 else
     BUILD_DIR="build/app/intermediates/merged_native_libs/release/out/lib"
+fi
+
+echo "Looking for native libraries in: $BUILD_DIR"
+
+# Check if build directory exists
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "ERROR: Build directory not found at $BUILD_DIR"
+    echo "Did you run 'flutter build apk' or 'flutter build appbundle' first?"
+    exit 1
 fi
 
 # Create output directory
@@ -70,6 +82,8 @@ process_directory() {
     local dir=$1
     local arch=$2
     
+    echo "Processing architecture directory: $dir"
+    
     # Create architecture-specific directory
     mkdir -p "$OUTPUT_DIR/$arch"
     
@@ -78,6 +92,7 @@ process_directory() {
         if [ -f "$so_file" ]; then
             echo "Processing $so_file..."
             "$OBJCOPY" --only-keep-debug "$so_file" "$OUTPUT_DIR/$arch/$(basename "$so_file").debug"
+            echo "Successfully extracted debug symbols from $(basename "$so_file")"
         fi
     done
 }
