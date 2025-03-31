@@ -12,6 +12,7 @@ migrate_working_dir/
 **/scripts/build.sh
 **/scripts/github.sh
 **/scripts/run.sh
+test_plan.md
 
 # IntelliJ related
 *.iml
@@ -107,7 +108,6 @@ key.properties
 **/android/app/src/*/res/values/strings.xml
 **/android/key.properties
 **/lib/config/app_config.dart
-**/lib/config/
 
 # Environment specific files
 *.env

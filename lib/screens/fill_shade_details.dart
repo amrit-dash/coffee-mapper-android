@@ -265,6 +265,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
           'updatedOn': FieldValue.serverTimestamp(),
           'savedBy': user.email,
           'area': widget.area,
+          'status': 'Active',
           'perimeter': widget.perimeter,
           'boundaryImageURLs': _boundaryCaptureMediaURLs,
           'polygonPoints': widget.polygonPoints
@@ -846,11 +847,19 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
             setState(() {
               _hideSaveField = false;
             });
+            FocusScope.of(context).unfocus(); // Dismiss keyboard when tapping outside
           },
           onEditingComplete: () {
             setState(() {
               _hideSaveField = false;
             });
+            FocusScope.of(context).unfocus(); // Dismiss keyboard when editing is complete
+          },
+          onFieldSubmitted: (value) {
+            setState(() {
+              _hideSaveField = false;
+            });
+            FocusScope.of(context).unfocus(); // Dismiss keyboard when enter is pressed
           },
           controller: controller,
           onChanged: (value) {

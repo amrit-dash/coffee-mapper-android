@@ -6,10 +6,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:location/location.dart';
 import 'package:maps_toolkit/maps_toolkit.dart' as mp;
+import 'package:permission_handler/permission_handler.dart' as perm;
+import 'package:permission_handler/permission_handler.dart';
 
 import '../widgets/header.dart';
 import '../utils/area_formatter.dart';
 import 'fill_shade_details.dart';
+import '../config/app_config_parameters.dart';
+import '../services/background_location_service.dart';
 
 class PlotPolygonScreen extends StatefulWidget {
   const PlotPolygonScreen({super.key});
@@ -20,152 +24,427 @@ class PlotPolygonScreen extends StatefulWidget {
 
 class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
   final Completer<gmap.GoogleMapController> _controller = Completer();
+  final BackgroundLocationService _backgroundService =
+      BackgroundLocationService();
+  final Location _location =
+      Location(); // Keep this only for initial location check
+
+  // Map related
   Set<gmap.Polygon> _polygons = {};
   List<gmap.LatLng> _polygonPoints = [];
-  gmap.LatLng _startingPoint = gmap.LatLng(0, 0);
+  gmap.GoogleMapController? _mapController;
+  gmap.LatLng? _startingPoint;
+
+  // Core states
+  bool _showErrorUI = false;
+  bool _isMapInitialized = false;
   bool _isTracking = false;
   bool _isTrackEnd = false;
+
+  // UI states
   bool _showCompleteButton = false;
   bool _showUndoButton = false;
   bool _showLocationButton = false;
-  double? _calculatedArea, _calculatedPerimeter;
-  bool _isSnackbarShown = false; // Flag to track snackbar display
+  bool _isSnackbarShown = false;
+
+  // Dialog tracking
+  bool _hasShownLocationDialog = false;
+  bool _hasShownBackgroundDialog = false;
+
+  // UI optimization timers
+  Timer? _cameraDebounceTimer;
+  Timer? _polygonUpdateTimer;
+  bool _needsPolygonUpdate = false;
+
+  // Tracking data
   List<String> _imagePaths = [];
   List<LocationData> _locationDataList = [];
+  double? _calculatedArea;
+  double? _calculatedPerimeter;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _checkLocationService();
   }
 
-  Future<void> _getCurrentLocation() async {
-    Location location = Location();
+  Future<void> _checkLocationService() async {
+    try {
+      bool serviceEnabled = await _location.serviceEnabled();
 
-    /*
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
-
-    serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
       if (!serviceEnabled) {
-        return;
+        serviceEnabled = await _location.requestService();
       }
-    }
 
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return;
+      if (!mounted) return;
+      setState(() {
+        _showErrorUI = !serviceEnabled;
+      });
+
+      if (serviceEnabled) {
+        await _requestLocationPermissions();
+      } else {
+        _showLocationServiceSnackBar();
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _showErrorUI = true;
+      });
     }
+  }
 
-     */
+  Future<void> _requestLocationPermissions() async {
+    // First request foreground location
+    final status = await Permission.location.request();
 
-    final locationData = await location.getLocation();
-    final currentLocation =
-        gmap.LatLng(locationData.latitude!, locationData.longitude!);
+    if (status.isGranted || status.isLimited) {
+      await _initializeMap();
+    } else if (status.isDenied) {
+      setState(() => _showErrorUI = true);
+      _showLocationDeniedSnackBar();
+    } else if (status.isPermanentlyDenied) {
+      setState(() => _showErrorUI = true);
+      _showSettingsDialog();
+    }
+  }
 
-    final gmap.GoogleMapController controller = await _controller.future;
-    controller.animateCamera(
-      gmap.CameraUpdate.newCameraPosition(
-        gmap.CameraPosition(
-          target: currentLocation,
-          zoom: 18,
+  void _showLocationServiceSnackBar() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Location service is required for maps to load'),
+        action: SnackBarAction(
+          label: 'Settings',
+          onPressed: () => openAppSettings(),
         ),
       ),
     );
   }
 
-  void _startTracking() async {
-    final snackbarContext = context;
-    Location location = Location();
-    final locationData = await location.getLocation();
-    final currentLocation =
-        gmap.LatLng(locationData.latitude!, locationData.longitude!);
-
-    setState(() {
-      _isTracking = true;
-      _showCompleteButton = false;
-      _showUndoButton = false;
-      _polygonPoints = [];
-      _isSnackbarShown = false;
-      _startingPoint = currentLocation;
-      _polygonPoints.add(currentLocation);
-    });
-
+  void _showLocationDeniedSnackBar() {
     if (!mounted) return;
-    if (snackbarContext.mounted) {
-      ScaffoldMessenger.of(snackbarContext).showSnackBar(
-        const SnackBar(
-          content: Text('Please start walking around the plantation.'),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Location permission is required for maps to load'),
+        action: SnackBarAction(
+          label: 'Settings',
+          onPressed: () => openAppSettings(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSettingsDialog() async {
+    if (!mounted) return;
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+            title: const Text('Permissions Required'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'To enable tracking in the background, please allow the app to access location all the time.\n\nSteps to enable location permissions:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text('1. Click - "Open Settings"'),
+                const Text('2. Go to "App Permissions"'),
+                const Text('3. Tap on "Location"'),
+                const Text('4. Select "Allow all the time"'),
+                const Text('5. Return to the app'),
+                const Text('6. Restart Tracking'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await openAppSettings();
+                  // Check permission status after returning from settings
+                  final status = await Permission.location.status;
+                  if (status.isDenied || status.isPermanentlyDenied) {
+                    return;
+                  }
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _initializeMap() async {
+    try {
+      // Check and request location permissions if needed
+      await _requestLocationPermission();
+
+      // After permissions are granted, mark that we need to update the map
+      if (mounted) {
+        setState(() {
+          _isMapInitialized = true;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _showErrorUI = true;
+      });
+    }
+  }
+
+  Future<void> _requestLocationPermission() async {
+    var permissionStatus = await Permission.location.status;
+
+    if (permissionStatus.isDenied && !_hasShownLocationDialog) {
+      permissionStatus = await Permission.location.request();
+      _hasShownLocationDialog = true;
+
+      if (permissionStatus.isDenied) {
+        if (!mounted) return;
+        setState(() {
+          _showErrorUI = true;
+        });
+        return;
+      }
+    }
+
+    if (permissionStatus.isPermanentlyDenied) {
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Location Permission Required"),
+          content: const Text(
+              "Location permission is required for tracking. Please enable it in Settings."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await openAppSettings();
+                // Check permission status after returning from settings
+                final status = await Permission.location.status;
+                if (status.isDenied) {
+                  if (!mounted) return;
+                  setState(() {
+                    _showErrorUI = true;
+                  });
+                  return;
+                }
+              },
+              child: const Text("Open Settings"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      final locationData = await _location.getLocation();
+      final currentLocation =
+          gmap.LatLng(locationData.latitude!, locationData.longitude!);
+
+      if (!mounted) return;
+
+      // Get the controller once it's available
+      if (_controller.isCompleted) {
+        final controller = await _controller.future;
+        _mapController = controller;
+
+        // Clear any existing polygons to force refresh
+        setState(() {
+          _polygons = {};
+        });
+
+        // Animate to current location with debounce
+        _animateToLocation(currentLocation);
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  void _animateToLocation(gmap.LatLng location) {
+    if (!mounted || _mapController == null) return;
+
+    _cameraDebounceTimer?.cancel();
+    _cameraDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      await _mapController!.animateCamera(
+        gmap.CameraUpdate.newCameraPosition(
+          gmap.CameraPosition(
+            target: location,
+            zoom: 20.0, // Increased zoom level for better detail
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _startTracking() async {
+    try {
+      // Check background permission status first
+      var backgroundStatus = await Permission.locationAlways.status;
+
+      // Show first dialog only if permission is not granted and hasn't been shown before
+      if (!backgroundStatus.isGranted && !_hasShownBackgroundDialog) {
+        if (!mounted) return;
+        await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Permissions Required'),
+            content: const Text(
+                'This app needs additional permissions to track regions in the background.\n'
+                'Please select "Allow all the time" in the next screen.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  // Enable background permission
+                  backgroundStatus = await Permission.locationAlways.request();
+                  if (!mounted) return;
+                  navigator.pop();
+                },
+                child: const Text('Grant Permission'),
+              ),
+            ],
+          ),
+        );
+
+        setState(() => _hasShownBackgroundDialog = true);
+      }
+
+      if (!backgroundStatus.isGranted) {
+        if (!mounted) return;
+
+        // Show second dialog with detailed settings instructions
+        await _showSettingsDialog();
+        return;
+      }
+
+      // Initialize background service
+      await _backgroundService.initialize();
+
+      // Start tracking with background service
+      await _backgroundService.startTracking((locationData) {
+        if (!mounted) return;
+
+        // If actively tracking, update polygon
+        if (_isTracking) {
+          final newPoint =
+              gmap.LatLng(locationData.latitude!, locationData.longitude!);
+
+          setState(() {
+            // Store starting point for the first point only if we're starting fresh
+            if (_polygonPoints.isEmpty) {
+              _startingPoint = newPoint;
+            }
+
+            _polygonPoints.add(newPoint);
+            _needsPolygonUpdate = true;
+          });
+
+          // Update polygon with debounce
+          _updatePolygon();
+
+          // Animate camera to new location
+          _animateToLocation(newPoint);
+
+          // Check if we can complete the polygon
+          if (_startingPoint != null) {
+            _checkDistanceToStart();
+          }
+        }
+      });
+
+      setState(() {
+        _isTracking = true;
+        _showCompleteButton = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Error"),
+          content: Text("Failed to start tracking: $e"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
         ),
       );
     }
+  }
 
-    Location().onLocationChanged.listen((LocationData locationData) {
-      if (_isTracking && mounted) {
+  void _updatePolygon() {
+    if (!_needsPolygonUpdate) return;
+
+    _polygonUpdateTimer?.cancel();
+    _polygonUpdateTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted && _polygonPoints.isNotEmpty) {
         setState(() {
-          _polygonPoints.add(
-              gmap.LatLng(locationData.latitude!, locationData.longitude!));
-          _checkDistanceToStart();
-
           _polygons = {
             gmap.Polygon(
               polygonId: const gmap.PolygonId('shade'),
               points: _polygonPoints,
               strokeColor: Theme.of(context).colorScheme.secondary,
               strokeWidth: 2,
-              fillColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 128),
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .secondary
+                  .withValues(alpha: 128),
             ),
           };
-
-          _animateCamera(locationData);
         });
+        _needsPolygonUpdate = false;
       }
     });
   }
 
-  // Add this new method
-  Future<void> _animateCamera(LocationData locationData) async {
-    final gmap.GoogleMapController controller = await _controller.future;
-    controller.animateCamera(
-      gmap.CameraUpdate.newCameraPosition(
-        gmap.CameraPosition(
-          target: gmap.LatLng(locationData.latitude!, locationData.longitude!),
-          zoom: 20,
-        ),
-      ),
-    );
-  }
-
   void _checkDistanceToStart() {
-    if (_polygonPoints.length < 25) {
-      return; // Need at least 25 points to calculate distance
+    if (_isSnackbarShown || _startingPoint == null || _polygonPoints.isEmpty) {
+      return; // Prevent showing snackbar multiple times or if points are not set
     }
 
-    if (_isSnackbarShown) {
-      return; // Prevent showing snackbar multiple times
+    // Only check for completion if we have enough points
+    if (_polygonPoints.length < AppConfigParameters.minPolygonPoints) {
+      return;
     }
 
-    final startPoint = _startingPoint;
     final currentPoint = _polygonPoints.last;
-    var distance = _calculateDistance(startPoint, currentPoint);
+    var distance = _calculateDistance(_startingPoint!, currentPoint);
 
-    //Polygon can be closed when distance <= 5 m
-    if (distance <= 5) {
-      // Show snackbar notification
+    if (distance <= AppConfigParameters.minPolygonCloseDistance) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You can now complete the polygon.'),
         ),
       );
       setState(() {
-        _showCompleteButton = true; // Show button if within 5 meters
-        _isSnackbarShown =
-            true; // Set snackbar flag to prevent multiple displays
+        _showCompleteButton = true;
+        _isSnackbarShown = true;
       });
     }
   }
@@ -199,21 +478,40 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
   }
 
   void _completePolygon() {
+    if (_polygonPoints.length < 3) {
+      // Need at least 3 points to form a polygon
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Need at least 3 points to form a polygon. Please continue tracking.'),
+        ),
+      );
+      return;
+    }
+
+    // Stop tracking and clean up background service
+    _backgroundService.stopTracking().then((_) => _backgroundService.dispose());
+
     setState(() {
       _polygonPoints.first = _polygonPoints.last;
       _isTracking = false;
       _isTrackEnd = true;
-      // _showCompleteButton = false; // Keep the complete button visible
       _showUndoButton = true;
-      _polygons = {
-        gmap.Polygon(
-          polygonId: const gmap.PolygonId('shade'),
-          points: _polygonPoints,
-          strokeColor: Theme.of(context).colorScheme.secondary,
-          strokeWidth: 2,
-          fillColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 128),
-        ),
-      };
+
+      // Only create polygon if we have points
+      if (_polygonPoints.isNotEmpty) {
+        _polygons = {
+          gmap.Polygon(
+            polygonId: const gmap.PolygonId('shade'),
+            points: _polygonPoints,
+            strokeColor: Theme.of(context).colorScheme.secondary,
+            strokeWidth: 2,
+            fillColor:
+                Theme.of(context).colorScheme.secondary.withValues(alpha: 128),
+          ),
+        };
+      }
+
       _getPolygonDetails();
     });
   }
@@ -240,62 +538,69 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
     return;
   }
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return PopScope(
       canPop: (_isTracking || _isTrackEnd) ? false : true,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          // Stop tracking and clean up background service
+          await _backgroundService.stopTracking();
+          await _backgroundService.dispose();
+        }
+      },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: Column(
             children: [
-              const Header(),
-              const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 0, 40, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Measure by GPS',
-                        style: TextStyle(
-                          fontFamily: 'Gilroy-SemiBold',
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                        ),
+              SizedBox(
+                height: AppConfigParameters.headerHeight,
+                child: const Header(),
+              ),
+              SizedBox(
+                height: AppConfigParameters.titleHeight,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(30, 0, 40, 0),
+                    child: Text(
+                      'Measure by GPS',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy-SemiBold',
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 5, 30, 15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // The map
-                      Container(
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Theme.of(context).scaffoldBackgroundColor),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        height: MediaQuery.of(context).size.height * 0.65,
-                        child: _buildMap(context),
-                      ),
-                    ],
+              // Map container with fixed height
+              Container(
+                height: screenHeight * AppConfigParameters.mapHeightRatio,
+                margin: const EdgeInsets.fromLTRB(30, 5, 30, 15),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor,
                   ),
+                  borderRadius: BorderRadius.circular(15),
                 ),
+                child: _buildMap(context),
               ),
-              // Bottom buttons
-              Padding(
-                padding: const EdgeInsets.fromLTRB(30, 10, 30, 20),
+              // Bottom buttons with fixed height
+              Container(
+                height: screenHeight * AppConfigParameters.buttonHeightRatio,
+                padding: const EdgeInsets.fromLTRB(30, 5, 30, 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -308,22 +613,13 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
                       onTap: () {
                         if (_isTrackEnd) {
                           setState(() {
-                            _showCompleteButton =
-                                false; // Initially disable the auto-complete button
+                            _showCompleteButton = false;
                             _showUndoButton = false;
                             _imagePaths = [];
                             _locationDataList = [];
-                            _polygonPoints = []; // Clear any previous points
-                            _isSnackbarShown = false; // Reset snackbar flag
-                            _polygons = {
-                              gmap.Polygon(
-                                polygonId: const gmap.PolygonId('shade'),
-                                points: _polygonPoints,
-                                strokeColor: Theme.of(context).colorScheme.secondary,
-                                strokeWidth: 0,
-                                fillColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 0),
-                              ),
-                            };
+                            _polygonPoints = [];
+                            _isSnackbarShown = false;
+                            _polygons = {};
                             _isTrackEnd = false;
                           });
                         } else {
@@ -331,9 +627,8 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
                         }
                       },
                     ),
-                    SizedBox(width: 15),
-                    _buildTrackingButton(
-                        context), // Use a separate widget for the tracking button
+                    const SizedBox(width: 15),
+                    _buildTrackingButton(context),
                   ],
                 ),
               ),
@@ -346,21 +641,109 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
 
   // Widget for the map
   Widget _buildMap(BuildContext context) {
+    if (_showErrorUI) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Failed to load maps',
+                style: TextStyle(
+                  fontFamily: 'Gilroy-SemiBold',
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  if (!_hasShownLocationDialog) {
+                    _checkLocationService();
+                  } else {
+                    _openLocationSettings();
+                  }
+                },
+                child: Text(
+                  _hasShownLocationDialog ? 'Open Settings' : 'Retry',
+                  style: TextStyle(
+                    fontFamily: 'Gilroy-SemiBold',
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_isMapInitialized) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              LoadingAnimationWidget.dotsTriangle(
+                color: Theme.of(context).colorScheme.secondary,
+                size: 30,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Loading Map...',
+                style: TextStyle(
+                  fontFamily: 'Gilroy-SemiBold',
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Stack(
       children: [
         gmap.GoogleMap(
           mapType: gmap.MapType.satellite,
           myLocationEnabled: true,
+          myLocationButtonEnabled: false,
           initialCameraPosition: const gmap.CameraPosition(
             target: gmap.LatLng(18.8137326, 82.7001428),
             zoom: 11.0,
           ),
           onMapCreated: (gmap.GoogleMapController controller) {
-            _controller.complete(controller);
-            _showLocationButtonMethod();
+            if (!_controller.isCompleted) {
+              _controller.complete(controller);
+              _mapController = controller;
+              _showLocationButtonMethod();
+
+              // If we already requested permissions before map was created, get location immediately
+              if (_isMapInitialized) {
+                _getCurrentLocation();
+              } else {
+                // If map is created but permissions not yet requested, request them now
+                _requestLocationPermission();
+              }
+            }
           },
           polygons: _polygons,
-          myLocationButtonEnabled: false,
           zoomControlsEnabled: false, // Hide zoom buttons
         ),
         if (_calculatedArea != null && _calculatedPerimeter != null)
@@ -372,7 +755,6 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
-                
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -431,6 +813,7 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
             bottom: 16,
             right: 16,
             child: FloatingActionButton(
+              heroTag: "complete_button",
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               onPressed: _completePolygon,
               child: const Icon(
@@ -444,16 +827,19 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
             bottom: 16,
             right: 85,
             child: FloatingActionButton(
+              heroTag: "undo_button",
               backgroundColor: Theme.of(context).colorScheme.secondary,
               onPressed: () {
                 setState(() {
-                  _polygonPoints.first = _startingPoint;
+                  // Keep the first point and continue tracking from the last point
                   _isTracking = true;
                   _isTrackEnd = false;
                   _showUndoButton = false;
-                  //_showCompleteButton = false;
-                  //_isSnackbarShown = false;
+                  _showCompleteButton = false;
+                  _isSnackbarShown = false;
                 });
+                // Restart tracking
+                _startTracking();
               },
               child: Icon(
                 Icons.undo,
@@ -464,12 +850,12 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           ),
         if (_isTracking)
           Positioned(
-            // Boundary Image Camera Button
             top: 16,
             right: 66,
             width: 40,
             height: 40,
             child: FloatingActionButton(
+              heroTag: "camera_button",
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               onPressed: () async {
                 // 1. Pick an image from the camera with square aspect ratio
@@ -503,7 +889,8 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
               ),
             ),
           ),
-        if (_imagePaths.isNotEmpty && _isTracking) // Show the number only if there are images
+        if (_imagePaths.isNotEmpty &&
+            _isTracking) // Show the number only if there are images
           Positioned(
             top: 8,
             right: 60,
@@ -534,16 +921,32 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
             width: 40,
             height: 40,
             child: FloatingActionButton(
+              heroTag: "location_button",
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               onPressed: () async {
-                final location = Location();
-                final locationData = await location.getLocation();
-                final currentLocation = gmap.LatLng(
-                    locationData.latitude!, locationData.longitude!);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Getting your current location...'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
 
-                final controller = await _controller.future;
-                controller.animateCamera(gmap.CameraUpdate.newCameraPosition(
-                    gmap.CameraPosition(target: currentLocation, zoom: 20)));
+                try {
+                  final location = Location();
+                  final locationData = await location.getLocation();
+                  final currentLocation = gmap.LatLng(
+                      locationData.latitude!, locationData.longitude!);
+
+                  if (_controller.isCompleted) {
+                    final controller = await _controller.future;
+                    controller.animateCamera(
+                        gmap.CameraUpdate.newCameraPosition(gmap.CameraPosition(
+                            target: currentLocation, zoom: 20)));
+                  }
+                } catch (e) {
+                  _showErrorSnackBar('Error getting location: $e');
+                }
               },
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100.0),
@@ -622,17 +1025,18 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
                   if (!_isTracking && !_isTrackEnd) {
                     _startTracking();
                   } else if (_isTrackEnd) {
+                    // Stop tracking before navigating
+                    _backgroundService.stopTracking();
+
                     // Navigate to Next Page with area, perimeter, and polygon points
+                    if (!mounted) return;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ShadeDetailsScreen(
-                          area: _calculatedArea ??
-                              0.0, // Pass the calculated area (or 0.0 if null)
-                          perimeter: _calculatedPerimeter ??
-                              0.0, // Pass the calculated perimeter
-                          polygonPoints:
-                              _polygonPoints, // Pass the polygon points
+                          area: _calculatedArea ?? 0.0,
+                          perimeter: _calculatedPerimeter ?? 0.0,
+                          polygonPoints: _polygonPoints,
                           shadeImagePaths: _imagePaths,
                           shadeImageLocations: _locationDataList,
                         ),
@@ -658,7 +1062,7 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
     BuildContext context, {
     required String text,
     required VoidCallback onTap,
-    bool isDisabled = false, // Add a parameter to disable the button
+    bool isDisabled = false,
   }) {
     return Expanded(
       child: SizedBox(
@@ -680,7 +1084,28 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           ),
           onPressed: isDisabled
               ? null
-              : onTap, // Disable the button if isDisabled is true
+              : () {
+                  if (!_isTrackEnd) {
+                    _backgroundService
+                        .stopTracking()
+                        .then((_) => _backgroundService.dispose());
+                  }
+                  if (_isTrackEnd && text == 'Clear') {
+                    setState(() {
+                      _showCompleteButton = false;
+                      _showUndoButton = false;
+                      _imagePaths = [];
+                      _locationDataList = [];
+                      _polygonPoints = [];
+                      _isSnackbarShown = false;
+                      _polygons = {};
+                      _isTrackEnd = false; // Reset track end state
+                      _isTracking = false; // Reset tracking state
+                    });
+                  } else {
+                    onTap();
+                  }
+                },
           child: Text(
             text,
             style: TextStyle(
@@ -690,5 +1115,32 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openLocationSettings() async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Location service is required to load maps'),
+        duration: Duration(seconds: 3),
+      ),
+    );
+    await openAppSettings();
+  }
+
+  @override
+  void dispose() {
+    _cameraDebounceTimer?.cancel();
+    _polygonUpdateTimer?.cancel();
+    // Stop tracking and clean up background service
+    if (_isTracking || _isTrackEnd) {
+      _backgroundService
+          .stopTracking()
+          .then((_) => _backgroundService.dispose());
+    }
+    if (_mapController != null) {
+      _mapController!.dispose();
+    }
+    super.dispose();
   }
 }
