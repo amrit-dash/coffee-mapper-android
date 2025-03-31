@@ -580,7 +580,7 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
+                          ),  
                         ),
                       ),
                     ),
