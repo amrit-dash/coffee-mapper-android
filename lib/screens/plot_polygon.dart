@@ -141,43 +141,43 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-            title: const Text('Permissions Required'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'To enable tracking in the background, please allow the app to access location all the time.\n\nSteps to enable location permissions:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                const Text('1. Click - "Open Settings"'),
-                const Text('2. Go to "App Permissions"'),
-                const Text('3. Tap on "Location"'),
-                const Text('4. Select "Allow all the time"'),
-                const Text('5. Return to the app'),
-                const Text('6. Restart Tracking'),
-              ],
+        title: const Text('Permissions Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'To enable tracking in the background, please allow the app to access location all the time.\n\nSteps to enable location permissions:',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await openAppSettings();
-                  // Check permission status after returning from settings
-                  final status = await Permission.location.status;
-                  if (status.isDenied || status.isPermanentlyDenied) {
-                    return;
-                  }
-                },
-                child: const Text('Open Settings'),
-              ),
-            ],
+            const SizedBox(height: 10),
+            const Text('1. Click - "Open Settings"'),
+            const Text('2. Go to "App Permissions"'),
+            const Text('3. Tap on "Location"'),
+            const Text('4. Select "Allow all the time"'),
+            const Text('5. Return to the app'),
+            const Text('6. Restart Tracking'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await openAppSettings();
+              // Check permission status after returning from settings
+              final status = await Permission.location.status;
+              if (status.isDenied || status.isPermanentlyDenied) {
+                return;
+              }
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -564,67 +564,76 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           child: Column(
             children: [
               const Header(),
-              SizedBox(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(30, 10, 40, 15),
-                    child: Text(
-                      'Measure by GPS',
-                      style: TextStyle(
-                        fontFamily: 'Gilroy-SemiBold',
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    SizedBox(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(30, 10, 40, 15),
+                          child: Text(
+                            'Measure by GPS',
+                            style: TextStyle(
+                              fontFamily: 'Gilroy-SemiBold',
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-              // Map container with fixed height
-              Container(
-                height: screenHeight * AppConfigParameters.mapHeightRatio,
-                margin: const EdgeInsets.fromLTRB(30, 5, 30, 15),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: _buildMap(context),
-              ),
-              // Bottom buttons with fixed height
-              Container(
-                height: screenHeight * AppConfigParameters.buttonHeightRatio,
-                padding: const EdgeInsets.fromLTRB(30, 5, 30, 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildBottomButton(
-                      context,
-                      text: (_isTrackEnd)
-                          ? 'Clear'
-                          : ((_isTracking) ? 'Clear' : 'Back'),
-                      isDisabled: _isTracking,
-                      onTap: () {
-                        if (_isTrackEnd) {
-                          setState(() {
-                            _showCompleteButton = false;
-                            _showUndoButton = false;
-                            _imagePaths = [];
-                            _locationDataList = [];
-                            _polygonPoints = [];
-                            _isSnackbarShown = false;
-                            _polygons = {};
-                            _isTrackEnd = false;
-                          });
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      },
+
+                    // Map container with fixed height
+                    Container(
+                      height: screenHeight * AppConfigParameters.mapHeightRatio,
+                      margin: const EdgeInsets.fromLTRB(30, 5, 30, 15),
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: _buildMap(context),
                     ),
-                    const SizedBox(width: 15),
-                    _buildTrackingButton(context),
+                    // Bottom buttons with fixed height
+                    Container(
+                      height:
+                          screenHeight * AppConfigParameters.buttonHeightRatio,
+                      padding: const EdgeInsets.fromLTRB(30, 0, 30, 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildBottomButton(
+                            context,
+                            text: (_isTrackEnd)
+                                ? 'Clear'
+                                : ((_isTracking) ? 'Clear' : 'Back'),
+                            isDisabled: _isTracking,
+                            onTap: () {
+                              if (_isTrackEnd) {
+                                setState(() {
+                                  _showCompleteButton = false;
+                                  _showUndoButton = false;
+                                  _imagePaths = [];
+                                  _locationDataList = [];
+                                  _polygonPoints = [];
+                                  _isSnackbarShown = false;
+                                  _polygons = {};
+                                  _isTrackEnd = false;
+                                });
+                              } else {
+                                Navigator.pop(context);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 15),
+                          _buildTrackingButton(context),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -742,7 +751,9 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           polygons: _polygons,
           zoomControlsEnabled: false, // Hide zoom buttons
         ),
-        if (_calculatedArea != null && _calculatedPerimeter != null && _showUndoButton)
+        if (_calculatedArea != null &&
+            _calculatedPerimeter != null &&
+            _showUndoButton)
           Positioned(
             top: 16,
             left: 16,
