@@ -9,6 +9,4 @@ class AppConfigParameters {
   // Layout configurations
   static const double mapHeightRatio = 0.65;
   static const double buttonHeightRatio = 0.1;
-  static const double headerHeight = 80.0;
-  static const double titleHeight = 60.0;
 } 

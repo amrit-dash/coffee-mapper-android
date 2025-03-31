@@ -5,6 +5,29 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2024-03-31
+
+### Added
+- Background location tracking functionality
+- Coffee nursery tracking and management features
+- Native debug symbols generation for better crash reporting
+- SuperAdmin role operations
+- New workflow steps for improved development process
+
+### Changed
+- Updated form field configurations
+- Enhanced device width constraints for better UI
+- Improved form data structure for Coffee Nursery tracking
+- Updated Play Integrity configuration
+- Optimized build settings
+
+### Fixed
+- Various permission issues
+- Minor bugs and workflow improvements
+- Debug symbols structure for Play Store
+- macOS metadata exclusion from debug symbols
+- Recovery artifact handling
+
 ## [1.2.3] - 2024-03-19
 
 ### Fixed

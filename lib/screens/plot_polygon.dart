@@ -563,16 +563,12 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
         body: SafeArea(
           child: Column(
             children: [
+              const Header(),
               SizedBox(
-                height: AppConfigParameters.headerHeight,
-                child: const Header(),
-              ),
-              SizedBox(
-                height: AppConfigParameters.titleHeight,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(30, 0, 40, 0),
+                    padding: const EdgeInsets.fromLTRB(30, 10, 40, 15),
                     child: Text(
                       'Measure by GPS',
                       style: TextStyle(

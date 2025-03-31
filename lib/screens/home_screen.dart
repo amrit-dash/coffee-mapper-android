@@ -112,9 +112,9 @@ class HomeScreen extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(128),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0), // Reduce corner radius to 8 pixels
+            borderRadius: BorderRadius.circular(10.0),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
           textStyle: TextStyle(
             fontFamily: 'Gilroy-SemiBold',
             fontSize: 17,
@@ -122,20 +122,25 @@ class HomeScreen extends StatelessWidget {
         ),
         onPressed: (disabled == "yes") ? null : onTap,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            const SizedBox(width: 20),
             Icon(
               icon,
               size: 30,
               color: Theme.of(context).colorScheme.error.withAlpha(128),
             ),
-            const SizedBox(width: 20),
-            Text(title, style: TextStyle(
-              color: Theme.of(context).colorScheme.secondary,
-              fontSize: 16.5,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontSize: 16.5,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
             ),
-            ),
+            const SizedBox(width: 8),
           ],
         ),
       ),
