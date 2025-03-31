@@ -746,7 +746,7 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           polygons: _polygons,
           zoomControlsEnabled: false, // Hide zoom buttons
         ),
-        if (_calculatedArea != null && _calculatedPerimeter != null)
+        if (_calculatedArea != null && _calculatedPerimeter != null && _showUndoButton)
           Positioned(
             top: 16,
             left: 16,
