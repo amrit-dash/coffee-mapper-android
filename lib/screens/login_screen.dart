@@ -24,17 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _loginErrorMessage;
 
-  // Add this method to check if a user exists
-  Future<bool> _userExists(String email) async {
-    try {
-      // Use fetchSignInMethodsForEmail to check if the user exists
-      final signInMethods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
-      return signInMethods.isNotEmpty;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<void> _signInWithEmailAndPassword() async {
     if (!mounted) return;
     setState(() {
@@ -43,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _invalidPassword = false;
       _loginErrorMessage = null;
     });
+    
     try {
       final providerContext = context;
       final navigatorContext = context;
@@ -54,36 +44,55 @@ class _LoginScreenState extends State<LoginScreen> {
           message: 'Email and password cannot be empty',
         );
       }
-
-      // Check if user exists before attempting login
-      final email = _emailController.text.trim();
-      final userExists = await _userExists(email);
       
-      if (!userExists) {
-        throw FirebaseAuthException(
-          code: 'user-not-found',
-          message: 'No user found with this email address',
+      final email = _emailController.text.trim();
+      
+      // Try to sign in with credentials, catch the specific PigeonUserDetails error
+      User? user;
+      try {
+        // Normal sign-in attempt
+        final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: _passwordController.text,
         );
+        user = userCredential.user;
+      } catch (e) {
+        // Check for the specific PigeonUserDetails error
+        if (e.toString().contains("'List<Object?>") && 
+            e.toString().contains("PigeonUserDetails")) {
+          
+          // If we get this error, the authentication might have actually succeeded
+          // Try to get the current user
+          user = FirebaseAuth.instance.currentUser;
+          
+          // If we still don't have a user, rethrow the original error
+          if (user == null) {
+            rethrow;
+          }
+        } else {
+          // For any other error, rethrow it
+          rethrow;
+        }
       }
-
-      final userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: _passwordController.text,
-      );
-
-      // Check admin status
-      if (!mounted) return;
-      if (providerContext.mounted && userCredential.user != null && userCredential.user!.email != null) {
-        await providerContext
-            .read<AdminProvider>()
-            .checkAdminStatus(userCredential.user!.email!);
-      }
-
-      // Navigate to the main menu screen
-      if (navigatorContext.mounted) {
-        Navigator.pushReplacement(navigatorContext,
-            MaterialPageRoute(builder: (context) => const HomeScreen()));
+      
+      // If we have a user at this point, we're authenticated
+      if (user != null && user.email != null) {
+        // Check admin status
+        if (!mounted) return;
+        if (providerContext.mounted) {
+          await providerContext
+              .read<AdminProvider>()
+              .checkAdminStatus(user.email!);
+        }
+  
+        // Navigate to the main menu screen
+        if (navigatorContext.mounted) {
+          Navigator.pushReplacement(navigatorContext,
+              MaterialPageRoute(builder: (context) => const HomeScreen()));
+        }
+      } else {
+        // This shouldn't happen, but handle it anyway
+        throw Exception("Failed to authenticate. Please try again.");
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -103,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
           _invalidEmail = true;
           _loginErrorMessage = errorMessage;
           break;
+        case 'wrong-password':
         case 'invalid-credential':
           errorMessage = 'Incorrect password.';
           _invalidPassword = true;
@@ -112,7 +122,15 @@ class _LoginScreenState extends State<LoginScreen> {
           errorMessage = e.message ?? 'Please enter email and password.';
           break;
         default:
-          errorMessage = 'Login failed: ${e.message}';
+          // Check if the error could be a "user not found" error
+          if (e.message?.toLowerCase().contains('user') == true && 
+              e.message?.toLowerCase().contains('not found') == true) {
+            errorMessage = 'No user found with this email address.';
+            _invalidEmail = true;
+            _loginErrorMessage = errorMessage;
+          } else {
+            errorMessage = 'Login failed: ${e.message}';
+          }
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -121,10 +139,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      // Generic error handling
+      
+      // Handle generic errors, including the PigeonUserDetails error if not caught earlier
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Authentication error: $e'),
+          content: Text(e.toString().contains("PigeonUserDetails") 
+            ? 'An authentication error occurred. Please try again.' 
+            : 'Authentication error: $e'),
         ),
       );
     } finally {
