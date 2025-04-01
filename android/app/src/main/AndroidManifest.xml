@@ -23,15 +23,6 @@
 
     <!-- Required features -->
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-    
-    <!-- Screen compatibility - More permissive for emulators -->
-    <supports-screens
-        android:smallScreens="true"
-        android:normalScreens="true"
-        android:largeScreens="true"
-        android:xlargeScreens="false"
-        android:requiresSmallestWidthDp="540"/>
 
     <application
         android:label="Coffee Mapper"
@@ -47,7 +38,6 @@
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
-            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden|keyboard|locale|layoutDirection|fontScale|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">

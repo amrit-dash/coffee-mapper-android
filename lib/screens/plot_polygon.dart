@@ -564,76 +564,68 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
           child: Column(
             children: [
               const Header(),
+              SizedBox(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(30, 15, 40, 10),
+                    child: Text(
+                      'Measure by GPS',
+                      style: TextStyle(
+                        fontFamily: 'Gilroy-SemiBold',
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Map container with fixed height
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(30, 0, 30, 20),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: _buildMap(context),
+                ),
+              ),
+              // Bottom buttons with fixed height
+              Container(
+                height: screenHeight * AppConfigParameters.buttonHeightRatio,
+                padding: const EdgeInsets.fromLTRB(30, 0, 30, 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SizedBox(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(30, 10, 40, 15),
-                          child: Text(
-                            'Measure by GPS',
-                            style: TextStyle(
-                              fontFamily: 'Gilroy-SemiBold',
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),  
-                        ),
-                      ),
+                    _buildBottomButton(
+                      context,
+                      text: (_isTrackEnd)
+                          ? 'Clear'
+                          : ((_isTracking) ? 'Clear' : 'Back'),
+                      isDisabled: _isTracking,
+                      onTap: () {
+                        if (_isTrackEnd) {
+                          setState(() {
+                            _showCompleteButton = false;
+                            _showUndoButton = false;
+                            _imagePaths = [];
+                            _locationDataList = [];
+                            _polygonPoints = [];
+                            _isSnackbarShown = false;
+                            _polygons = {};
+                            _isTrackEnd = false;
+                          });
+                        } else {
+                          Navigator.pop(context);
+                        }
+                      },
                     ),
-
-                    // Map container with fixed height
-                    Container(
-                      height: screenHeight * AppConfigParameters.mapHeightRatio,
-                      margin: const EdgeInsets.fromLTRB(30, 5, 30, 15),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: _buildMap(context),
-                    ),
-                    // Bottom buttons with fixed height
-                    Container(
-                      height:
-                          screenHeight * AppConfigParameters.buttonHeightRatio,
-                      padding: const EdgeInsets.fromLTRB(30, 0, 30, 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildBottomButton(
-                            context,
-                            text: (_isTrackEnd)
-                                ? 'Clear'
-                                : ((_isTracking) ? 'Clear' : 'Back'),
-                            isDisabled: _isTracking,
-                            onTap: () {
-                              if (_isTrackEnd) {
-                                setState(() {
-                                  _showCompleteButton = false;
-                                  _showUndoButton = false;
-                                  _imagePaths = [];
-                                  _locationDataList = [];
-                                  _polygonPoints = [];
-                                  _isSnackbarShown = false;
-                                  _polygons = {};
-                                  _isTrackEnd = false;
-                                });
-                              } else {
-                                Navigator.pop(context);
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 15),
-                          _buildTrackingButton(context),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(width: 15),
+                    _buildTrackingButton(context),
                   ],
                 ),
               ),
