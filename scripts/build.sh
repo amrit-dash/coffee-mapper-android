@@ -63,7 +63,7 @@ mkdir -p "$BUILD_DIR"
 case $ENV in
     "dev")
         echo "Building development APK..."
-        OUTPUT_NAME="coffee_mapper_dev_${VERSION}.apk"
+        OUTPUT_NAME="coffee_mapper_dev_${VERSION}"
         BUILD_TYPE="--debug"
         ENV_FLAG=""
         FIREBASE_CONFIG="google-services-dev.json"
