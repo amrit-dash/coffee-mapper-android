@@ -114,15 +114,18 @@ class HomeScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 14),
           textStyle: TextStyle(
             fontFamily: 'Gilroy-SemiBold',
-            fontSize: 17,
+            fontSize: 16,
           ),
         ),
         onPressed: (disabled == "yes") ? null : onTap,
         child: Row(
           children: [
+            SizedBox(
+              width: 3,
+            ),
             Icon(
               icon,
               size: 30,
@@ -134,7 +137,7 @@ class HomeScreen extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.secondary,
-                  fontSize: 16.5,
+                  fontSize: 15.5,
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
