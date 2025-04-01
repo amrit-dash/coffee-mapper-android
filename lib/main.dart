@@ -26,41 +26,38 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
-    // If Firebase is already initialized, we can safely continue
-    if (Firebase.apps.isNotEmpty) {
-      logger.fine('Firebase already initialized');
+
+    // Initialize Crashlytics
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+
+    // Enable App Check with debug token for development
+    if (const bool.fromEnvironment('dart.vm.product') == false) {
+      logger.info('Initializing App Check in debug mode');
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
     } else {
-      logger.severe('Failed to initialize Firebase: $e');
-      rethrow;
+      logger.info('Initializing App Check in release mode');
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.playIntegrity,
+        appleProvider: AppleProvider.appAttest,
+      );
     }
+
+    // Enable offline persistence for Firestore
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (e) {
+    logger.severe('Failed to initialize Firebase services: $e');
+    // Continue with the app even if Firebase fails, to allow debugging
   }
 
-  // Initialize Crashlytics
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
-
-  // Enable App Check with debug token for development
-  if (const bool.fromEnvironment('dart.vm.product') == false) {
-    logger.info('Initializing App Check in debug mode');
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-    );
-  } else {
-    logger.info('Initializing App Check in release mode');
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.playIntegrity,
-    );
-  }
-
-  // Enable offline persistence for Firestore
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
-
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
+  // Set preferred orientations
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 

@@ -70,7 +70,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled true
         
-        // Explicitly disable AD_ID collection
+        // Only disable AD_ID collection, keep analytics enabled
         manifestPlaceholders = [
             ADID_COLLECTION_ENABLED: "false"
         ]
@@ -133,7 +133,6 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:32.7.2')
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.android.play:integrity:1.4.0'
 }
 
 apply plugin: 'com.google.gms.google-services'

@@ -69,8 +69,8 @@ case $ENV in
         FIREBASE_CONFIG="google-services-dev.json"
         ;;
     "prod")
-        echo "Building production APK..."
-        OUTPUT_NAME="coffee_mapper_${VERSION}.apk"
+        echo "Building production APK and AAB..."
+        OUTPUT_NAME="coffee_mapper_${VERSION}"
         BUILD_TYPE="--release"
         ENV_FLAG="--dart-define=ENVIRONMENT=production"
         FIREBASE_CONFIG="google-services-prod.json"
@@ -100,6 +100,21 @@ cp "android/app/${FIREBASE_CONFIG}" "android/app/google-services.json" || handle
 echo "Building APK..."
 flutter build apk $BUILD_TYPE $ENV_FLAG --build-name="$VERSION" --build-number="$BUILD_NUMBER" || handle_error "Failed to build APK"
 
+# For production builds, also generate AAB and debug symbols
+if [ $ENV == "prod" ]; then
+    echo "Building AAB..."
+    flutter build appbundle $BUILD_TYPE $ENV_FLAG --build-name="$VERSION" --build-number="$BUILD_NUMBER" || handle_error "Failed to build AAB"
+    
+    echo "Generating debug symbols..."
+    ./scripts/generate_symbols.sh release || handle_error "Failed to generate debug symbols"
+    
+    # Copy AAB to builds directory
+    cp "build/app/outputs/bundle/release/app-release.aab" "${BUILD_DIR}/${OUTPUT_NAME}.aab" || handle_error "Failed to copy AAB to builds directory"
+    
+    # Copy debug symbols to builds directory
+    cp "build/symbols_release.zip" "${BUILD_DIR}/${OUTPUT_NAME}_symbols.zip" || handle_error "Failed to copy debug symbols to builds directory"
+fi
+
 # Copy and rename the APK
 if [ $ENV == "dev" ]; then
     SOURCE_APK="build/app/outputs/flutter-apk/app-debug.apk"
@@ -113,13 +128,23 @@ if [ ! -f "$SOURCE_APK" ]; then
 fi
 
 # Copy APK to builds directory
-cp "$SOURCE_APK" "${BUILD_DIR}/${OUTPUT_NAME}" || handle_error "Failed to copy APK to builds directory"
+cp "$SOURCE_APK" "${BUILD_DIR}/${OUTPUT_NAME}.apk" || handle_error "Failed to copy APK to builds directory"
 
 # Restore original pubspec
 restore_pubspec
 
 echo "Build completed successfully!"
-echo "APK location: ${BUILD_DIR}/${OUTPUT_NAME}"
+echo "Build directory: ${BUILD_DIR}"
 echo "Environment: ${ENV}"
 echo "Version: ${VERSION}"
-echo "Build number: ${BUILD_NUMBER}" 
+echo "Build number: ${BUILD_NUMBER}"
+
+if [ $ENV == "prod" ]; then
+    echo "Generated files:"
+    echo "- APK: ${OUTPUT_NAME}.apk"
+    echo "- AAB: ${OUTPUT_NAME}.aab"
+    echo "- Debug Symbols: ${OUTPUT_NAME}_symbols.zip"
+else
+    echo "Generated file:"
+    echo "- APK: ${OUTPUT_NAME}.apk"
+fi 

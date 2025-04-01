@@ -13,6 +13,7 @@ migrate_working_dir/
 **/scripts/github.sh
 **/scripts/run.sh
 test_plan.md
+.cursor
 
 # IntelliJ related
 *.iml

@@ -24,26 +24,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _loginErrorMessage;
 
+  // Add this method to check if a user exists
+  Future<bool> _userExists(String email) async {
+    try {
+      // Use fetchSignInMethodsForEmail to check if the user exists
+      final signInMethods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+      return signInMethods.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> _signInWithEmailAndPassword() async {
     if (!mounted) return;
     setState(() {
       _isLoading = true; // Show loader
       _invalidEmail = false;
       _invalidPassword = false;
+      _loginErrorMessage = null;
     });
     try {
       final providerContext = context;
       final navigatorContext = context;
 
+      // Validate input before attempting login
+      if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'invalid-input',
+          message: 'Email and password cannot be empty',
+        );
+      }
+
+      // Check if user exists before attempting login
+      final email = _emailController.text.trim();
+      final userExists = await _userExists(email);
+      
+      if (!userExists) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'No user found with this email address',
+        );
+      }
+
       final userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text,
+        email: email,
         password: _passwordController.text,
       );
 
       // Check admin status
       if (!mounted) return;
-      if (providerContext.mounted) {
+      if (providerContext.mounted && userCredential.user != null && userCredential.user!.email != null) {
         await providerContext
             .read<AdminProvider>()
             .checkAdminStatus(userCredential.user!.email!);
@@ -68,19 +99,32 @@ class _LoginScreenState extends State<LoginScreen> {
           errorMessage = 'User account disabled.';
           break;
         case 'user-not-found':
-          errorMessage = 'User not found.';
+          errorMessage = 'No user found with this email address.';
+          _invalidEmail = true;
+          _loginErrorMessage = errorMessage;
           break;
         case 'invalid-credential':
           errorMessage = 'Incorrect password.';
           _invalidPassword = true;
           _loginErrorMessage = errorMessage;
           break;
+        case 'invalid-input':
+          errorMessage = e.message ?? 'Please enter email and password.';
+          break;
         default:
-          errorMessage = 'Login failed. Please try again.';
+          errorMessage = 'Login failed: ${e.message}';
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      // Generic error handling
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Authentication error: $e'),
         ),
       );
     } finally {

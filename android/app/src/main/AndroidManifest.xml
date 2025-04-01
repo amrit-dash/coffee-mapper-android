@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Remove unwanted permissions -->
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove"/>
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove"/>
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" tools:node="remove"/>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove"/>
+
     <!-- Required permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -12,6 +19,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Required features -->
     <uses-feature android:name="android.hardware.location.gps" android:required="true" />
@@ -22,9 +30,8 @@
         android:smallScreens="true"
         android:normalScreens="true"
         android:largeScreens="true"
-        android:xlargeScreens="true"
-        android:requiresSmallestWidthDp="320"
-        android:compatibleWidthLimitDp="1024" />
+        android:xlargeScreens="false"
+        android:requiresSmallestWidthDp="540"/>
 
     <application
         android:label="Coffee Mapper"
