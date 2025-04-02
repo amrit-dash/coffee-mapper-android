@@ -67,6 +67,7 @@ case $ENV in
         BUILD_TYPE="--debug"
         ENV_FLAG=""
         FIREBASE_CONFIG="google-services-dev.json"
+        MAPS_API_KEY="AIzaSyBGfU3qCOTfqg52zENVopgHNTL0riF_zrg"
         ;;
     "prod")
         echo "Building production APK and AAB..."
@@ -74,6 +75,7 @@ case $ENV in
         BUILD_TYPE="--release"
         ENV_FLAG="--dart-define=ENVIRONMENT=production"
         FIREBASE_CONFIG="google-services-prod.json"
+        MAPS_API_KEY="AIzaSyAyye03zRtYOKOHFdtOvo99MnyHxzm6wBg"
         ;;
     *)
         usage
@@ -95,6 +97,16 @@ update_pubspec_version "$VERSION"
 # Copy Firebase configuration
 echo "Copying Firebase configuration..."
 cp "android/app/${FIREBASE_CONFIG}" "android/app/google-services.json" || handle_error "Failed to copy Firebase config"
+
+# Update Maps API key
+echo "Updating Maps API key for ${ENV} environment..."
+mkdir -p "android/app/src/main/res/values"
+cat > "android/app/src/main/res/values/strings.xml" << EOL
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="maps_api_key">${MAPS_API_KEY}</string>
+</resources>
+EOL
 
 # Build APK
 echo "Building APK..."
