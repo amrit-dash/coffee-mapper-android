@@ -3,7 +3,6 @@ package com.coffee.mapper.dev;
 import android.app.Application;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
-import io.flutter.plugins.GeneratedPluginRegistrant;
 
 public class CoffeeMapperDevApplication extends Application {
     private FlutterEngine flutterEngine;
@@ -18,9 +17,6 @@ public class CoffeeMapperDevApplication extends Application {
         flutterEngine.getDartExecutor().executeDartEntrypoint(
             DartExecutor.DartEntrypoint.createDefault()
         );
-
-        // Register all plugins
-        GeneratedPluginRegistrant.registerWith(flutterEngine);
     }
 
     public FlutterEngine getFlutterEngine() {

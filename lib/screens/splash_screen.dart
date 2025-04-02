@@ -1,4 +1,4 @@
-import 'package:coffee_mapper/main.dart';
+import 'package:coffee_mapper/screens/auth_wrapper.dart';
 //import 'package:coffee_mapper/widgets/svg_animator.dart';
 
 import 'package:flutter/material.dart';
