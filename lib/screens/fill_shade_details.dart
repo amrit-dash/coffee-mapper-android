@@ -185,21 +185,27 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser!;
 
       if (widget.shadeImagePaths.isNotEmpty) {
+        final String storageFolderName = (_selectedCategory != "Coffee Nursery") ? 'nurseries' : 'plantations';
 
-        final String storageFolderName =  ( _selectedCategory != "Coffee Nursery" ) ? 'nurseries' : 'plantations';
-
-        for (int indexCounter = 0;
-            indexCounter < widget.shadeImagePaths.length;
-            indexCounter++) {
+        for (int indexCounter = 0; indexCounter < widget.shadeImagePaths.length; indexCounter++) {
           final file = File(widget.shadeImagePaths[indexCounter]);
 
           final storageRef = FirebaseStorage.instance.ref().child(
               "$storageFolderName/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}.jpg");
+
+          // Set the metadata for the file
+          final metadata = SettableMetadata(
+            cacheControl: 'public, max-age=31536000', // Set the cache control
+            contentType: 'image/jpeg', // Set the content type
+          );
           
+          await storageRef.putFile(file, metadata).then((_) {
+            _logger.info('Upload successful for image: ${file.path}');
+          }).catchError((error) {
+            _logger.severe('Error uploading image: $error');
+          });
 
-          await storageRef.putFile(file);
           final downloadUrl = await storageRef.getDownloadURL();
-
           if (!mounted) return;
           setState(() {
             _boundaryCaptureMediaURLs.add(downloadUrl);
