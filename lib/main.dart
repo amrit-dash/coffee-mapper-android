@@ -32,6 +32,15 @@ class FirebaseInitializer {
     }
 
     try {
+      // Check if Firebase is already initialized
+      if (Firebase.apps.isNotEmpty) {
+        _logger.info('Firebase apps already exist: ${Firebase.apps.map((app) => app.name).join(', ')}');
+        _isInitialized = true;
+        return;
+      }
+
+      _logger.info('Starting Firebase initialization...');
+      
       // Initialize Firebase with the correct options
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -99,11 +108,11 @@ class FirebaseInitializer {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Logger first
-  AppLogger.init();
-
-  // Initialize Firebase services
+  // Initialize Firebase services first
   await FirebaseInitializer.ensureInitialized();
+
+  // Initialize Logger after Firebase
+  AppLogger.init();
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
