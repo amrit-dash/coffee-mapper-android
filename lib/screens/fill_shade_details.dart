@@ -182,34 +182,94 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
   Future<void> _saveShadeDataToFirestore() async {
     try {
       final firestore = FirebaseFirestore.instance;
-      final user = FirebaseAuth.instance.currentUser!;
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user == null || user.email == null) {
+        throw Exception('User not authenticated');
+      }
+
+      if (_regionNameController.text.isEmpty) {
+        throw Exception('Region name cannot be empty');
+      }
+
+      if (_selectedCategory == null) {
+        throw Exception('Category not selected');
+      }
+
+      // Validate all required fields
+      if (_selectedDistrict == null || 
+          _selectedTehsil == null || 
+          _selectedPanchayat == null || 
+          _selectedVillage == null) {
+        throw Exception('All location fields must be selected');
+      }
+
+      // Create document name with proper null safety
+      String documentName = '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
+      
+      if (documentName.isEmpty) {
+        throw Exception('Invalid document name generated');
+      }
 
       if (widget.shadeImagePaths.isNotEmpty) {
         final String storageFolderName = (_selectedCategory != "Coffee Nursery") ? 'nurseries' : 'plantations';
 
         for (int indexCounter = 0; indexCounter < widget.shadeImagePaths.length; indexCounter++) {
           final file = File(widget.shadeImagePaths[indexCounter]);
-
-          final storageRef = FirebaseStorage.instance.ref().child(
-              "$storageFolderName/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}.jpg");
-
-          // Set the metadata for the file
-          final metadata = SettableMetadata(
-            cacheControl: 'public, max-age=31536000', // Set the cache control
-            contentType: 'image/jpeg', // Set the content type
-          );
           
-          await storageRef.putFile(file, metadata).then((_) {
-            _logger.info('Upload successful for image: ${file.path}');
-          }).catchError((error) {
-            _logger.severe('Error uploading image: $error');
-          });
+          // Validate file exists and is accessible
+          if (!await file.exists()) {
+            _logger.warning('Image file does not exist: ${file.path}');
+            continue; // Skip this file and continue with others
+          }
 
-          final downloadUrl = await storageRef.getDownloadURL();
-          if (!mounted) return;
-          setState(() {
-            _boundaryCaptureMediaURLs.add(downloadUrl);
-          });
+          try {
+            // Create a sanitized path for Firebase Storage
+            final sanitizedPath = widget.shadeImagePaths[indexCounter]
+                .split('/')
+                .last
+                .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+                
+            final storageRef = FirebaseStorage.instance.ref().child(
+                "$storageFolderName/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}_$sanitizedPath");
+
+            // Set the metadata for the file
+            final metadata = SettableMetadata(
+              cacheControl: 'public, max-age=31536000',
+              contentType: 'image/jpeg',
+            );
+            
+            // Upload with retry logic
+            bool uploadSuccess = false;
+            int retryCount = 0;
+            const maxRetries = 3;
+            
+            while (!uploadSuccess && retryCount < maxRetries) {
+              try {
+                await storageRef.putFile(file, metadata);
+                uploadSuccess = true;
+                _logger.info('Upload successful for image: ${file.path}');
+              } catch (error) {
+                retryCount++;
+                if (retryCount == maxRetries) {
+                  _logger.severe('Failed to upload image after $maxRetries attempts: ${file.path}', error);
+                  rethrow;
+                }
+                // Wait before retrying (exponential backoff)
+                await Future.delayed(Duration(seconds: 1 * retryCount));
+              }
+            }
+
+            final downloadUrl = await storageRef.getDownloadURL();
+            if (!mounted) return;
+            setState(() {
+              _boundaryCaptureMediaURLs.add(downloadUrl);
+            });
+          } catch (e) {
+            _logger.severe('Error processing image: ${file.path}', e);
+            // Continue with other images even if one fails
+            continue;
+          }
         }
       }
 
@@ -226,7 +286,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         'regionCategory': _selectedCategory,
         'savedOn': FieldValue.serverTimestamp(),
         'updatedOn': FieldValue.serverTimestamp(),
-        'savedBy': user.email,
+        'savedBy': user.email!,
         'mapImageUrl': _imgURL,
         'boundaryImageURLs': _boundaryCaptureMediaURLs,
         'area': widget.area,
@@ -238,7 +298,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
       };
       final regionInsightsData = {
         'savedOn': FieldValue.serverTimestamp(), // Add timestamp field
-        'savedBy': user.email, // Add username field (using email for now)
+        'savedBy': user.email!, // Add username field (using email for now)
         'updatedOn': FieldValue.serverTimestamp(),
         'surveyStatus': false,
         'regionCategory': _selectedCategory,
@@ -255,9 +315,6 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         'mediaURLs': null,
       };
 
-      String documentName =
-          '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
-
       // For coffee nurseries, save to a different collection with only non-null values
       if (_selectedCategory == "Coffee Nursery") {
         final nurseryData = {
@@ -269,7 +326,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
           'regionCategory': _selectedCategory,
           'savedOn': FieldValue.serverTimestamp(),
           'updatedOn': FieldValue.serverTimestamp(),
-          'savedBy': user.email,
+          'savedBy': user.email!,
           'area': widget.area,
           'status': 'Active',
           'perimeter': widget.perimeter,
@@ -321,8 +378,11 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
     try {
       final gmap.GoogleMapController controller = await _controller.future;
-      // ignore: undefined_class
-      final Uint8List? imageBytes = await controller.takeSnapshot();
+      
+      // Ensure snapshot is taken on the main thread
+      final Uint8List? imageBytes = await Future.delayed(Duration.zero, () {
+        return controller.takeSnapshot();
+      });
 
       if (imageBytes != null) {
         // 1. Create a unique filename for the image
