@@ -275,6 +275,21 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
       if (_imgURL == "NA" && _selectedCategory != "Coffee Nursery") {
         await _captureMapImage();
+        // If still NA after capture, try one more time
+        if (_imgURL == "NA") {
+          await _captureMapImage();
+        }
+        // If still NA after second attempt, show error
+        if (_imgURL == "NA") {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to capture map image. Please try again.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return; // Don't proceed with saving if we don't have a map image
+        }
       }
 
       final regionData = {

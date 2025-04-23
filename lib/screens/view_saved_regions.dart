@@ -380,20 +380,39 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
                 bottom: 0,
                 child: SizedBox(
                   width: 135,
-                  child: Container(
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(13),
-                          bottomRight: Radius.circular(13),
-                        ),
-                        image: DecorationImage(
-                          fit: BoxFit.cover,
-                          alignment: FractionalOffset.topCenter,
-                          image: NetworkImage(
-                            document['mapImageUrl'],
+                  child: (document['mapImageUrl'] == "NA" || document['mapImageUrl'] == null)
+                      ? Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(13),
+                              bottomRight: Radius.circular(13),
+                            ),
+                            color: Colors.grey[300],
                           ),
-                        )),
-                  ),
+                          child: Center(
+                            child: Icon(
+                              Icons.error_outline,
+                              color: Colors.grey[600],
+                              size: 30,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(13),
+                              bottomRight: Radius.circular(13),
+                            ),
+                            image: DecorationImage(
+                              fit: BoxFit.cover,
+                              alignment: FractionalOffset.topCenter,
+                              image: NetworkImage(document['mapImageUrl']),
+                              onError: (exception, stackTrace) {
+                                // Handle error silently
+                              },
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ],

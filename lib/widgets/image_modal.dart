@@ -118,6 +118,12 @@ class _ImageModalState extends State<ImageModal> {
     return Image.network(
       widget.mediaPath,
       fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.grey[300],
+          child: Icon(Icons.error_outline, color: Colors.grey[600]),
+        );
+      },
       loadingBuilder: (BuildContext context, Widget child,
           ImageChunkEvent? loadingProgress) {
         if (loadingProgress == null) {
