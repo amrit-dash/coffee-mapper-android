@@ -67,17 +67,22 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
 
   void _setupNurseriesSubscription() {
     if (!mounted) return;
-    final isAdmin = context.read<AdminProvider>().isAdmin;
 
     var query = FirebaseFirestore.instance
         .collection('coffeeNursery')
         .where('status', isNotEqualTo: 'Archived')
         .orderBy('updatedOn', descending: true);
 
+    /*
+    // All users can see all nurseries
+
+    final isAdmin = context.read<AdminProvider>().isAdmin;
+
     if (!isAdmin) {
       query = query.where('savedBy',
           isEqualTo: FirebaseAuth.instance.currentUser!.email);
     }
+    */
 
     _nurseriesSubscription = query.snapshots().listen((snapshot) {
       if (!mounted) return;

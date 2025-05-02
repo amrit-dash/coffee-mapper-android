@@ -70,7 +70,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
   void _setupRegionsSubscription() {
     // Get admin status
     if (!mounted) return;
-    final isAdmin = context.read<AdminProvider>().isAdmin;
 
     // Build the base query
     var query = FirebaseFirestore.instance
@@ -78,10 +77,17 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
         .where('regionCategory', isNotEqualTo: 'Archived')
         .orderBy('updatedOn', descending: true);
 
-    // Add user filter only for non-admin users
+    
+    /*
+    // Add user filter only for non-admin users - Descoped
+    // All users can see all regions
+
+    final isAdmin = context.read<AdminProvider>().isAdmin;
+    
     if (!isAdmin) {
       query = query.where('savedBy', isEqualTo: FirebaseAuth.instance.currentUser!.email);
     }
+    */
 
     // Subscribe to the Firestore stream
     _regionsSubscription = query.snapshots().listen((snapshot) {

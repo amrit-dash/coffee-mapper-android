@@ -167,3 +167,8 @@ google-services*.json
 **/app_config.dart
 **/devtools_options.yaml
 app_config.dart
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
