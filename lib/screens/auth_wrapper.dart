@@ -15,10 +15,13 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           if (snapshot.hasData && snapshot.data != null) {
-            // Check admin status for persistent login
-            context
-                .read<AdminProvider>()
-                .checkAdminStatus(snapshot.data!.email!);
+            // Start admin status check in background
+            final currentUser = snapshot.data!;
+            if (currentUser.email != null) {
+              // Don't wait for the admin check, just trigger it
+              context.read<AdminProvider>().checkAdminStatus(currentUser.email!);
+            }
+            // Show HomeScreen immediately
             return const HomeScreen();
           } else {
             return const LoginScreen();

@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'package:intl/intl.dart';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:provider/provider.dart';
 
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/screens/interactive_shade_view.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 
 class ViewSavedRegionsScreen extends StatefulWidget {
@@ -67,8 +64,13 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _setupRegionsSubscription();
+  }
+
   void _setupRegionsSubscription() {
-    // Get admin status
     if (!mounted) return;
 
     // Build the base query
@@ -76,18 +78,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
         .collection('savedRegions')
         .where('regionCategory', isNotEqualTo: 'Archived')
         .orderBy('updatedOn', descending: true);
-
-    
-    /*
-    // Add user filter only for non-admin users - Descoped
-    // All users can see all regions
-
-    final isAdmin = context.read<AdminProvider>().isAdmin;
-    
-    if (!isAdmin) {
-      query = query.where('savedBy', isEqualTo: FirebaseAuth.instance.currentUser!.email);
-    }
-    */
 
     // Subscribe to the Firestore stream
     _regionsSubscription = query.snapshots().listen((snapshot) {
@@ -107,27 +97,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
       });
       _logger.severe('Error fetching regions: $error');
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAdminAndSetup();
-  }
-
-  Future<void> _checkAdminAndSetup() async {
-    if (!mounted) return;
-    
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await context.read<AdminProvider>().checkAdminStatus(user.email!);
-      }
-    } catch (e) {
-      _logger.warning('Error checking admin status: $e');
-    }
-    
-    _setupRegionsSubscription();
   }
 
   @override

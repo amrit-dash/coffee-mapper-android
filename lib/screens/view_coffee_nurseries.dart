@@ -2,13 +2,10 @@ import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
 
 import 'package:coffee_mapper/widgets/header.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'package:coffee_mapper/screens/update_nursery_details.dart';
 
@@ -65,6 +62,12 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _setupNurseriesSubscription();
+  }
+
   void _setupNurseriesSubscription() {
     if (!mounted) return;
 
@@ -72,17 +75,6 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
         .collection('coffeeNursery')
         .where('status', isNotEqualTo: 'Archived')
         .orderBy('updatedOn', descending: true);
-
-    /*
-    // All users can see all nurseries
-
-    final isAdmin = context.read<AdminProvider>().isAdmin;
-
-    if (!isAdmin) {
-      query = query.where('savedBy',
-          isEqualTo: FirebaseAuth.instance.currentUser!.email);
-    }
-    */
 
     _nurseriesSubscription = query.snapshots().listen((snapshot) {
       if (!mounted) return;
@@ -101,27 +93,6 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
       });
       _logger.severe('Error fetching nurseries: $error');
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAdminAndSetup();
-  }
-
-  Future<void> _checkAdminAndSetup() async {
-    if (!mounted) return;
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await context.read<AdminProvider>().checkAdminStatus(user.email!);
-      }
-    } catch (e) {
-      _logger.warning('Error checking admin status: $e');
-    }
-
-    _setupNurseriesSubscription();
   }
 
   @override

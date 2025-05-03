@@ -5,6 +5,20 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2024-03-31
+
+### Added
+- New plantation type categorization system with specific categories for each type
+- Separate workflows for Coffee Nursery, Shade Plantation, and Coffee Plantation
+
+### Changed
+- Restructured plantation category selection based on plantation type
+- Modified validation logic for different plantation types
+
+### Fixed
+- Null-related errors in plantation type selection
+- Category validation issues in shade details form
+
 ## [2.0.0] - 2024-03-31
 
 ### Added
@@ -13,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Native debug symbols generation for better crash reporting
 - SuperAdmin role operations
 - New workflow steps for improved development process
+- New plantation type categorization system with specific categories for each type
+- Separate workflows for Coffee Nursery, Shade Plantation, and Coffee Plantation
 
 ### Changed
 - Updated form field configurations
@@ -20,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved form data structure for Coffee Nursery tracking
 - Updated Play Integrity configuration
 - Optimized build settings
+- Restructured plantation category selection based on plantation type
+- Modified validation logic for different plantation types
 
 ### Fixed
 - Various permission issues
@@ -27,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Debug symbols structure for Play Store
 - macOS metadata exclusion from debug symbols
 - Recovery artifact handling
+- Null-related errors in plantation type selection
+- Category validation issues in shade details form
 
 ## [1.2.3] - 2024-03-19
 

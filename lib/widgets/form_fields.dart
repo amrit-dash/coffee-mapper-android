@@ -50,7 +50,6 @@ class _FormFieldsState extends State<FormFields> {
   String? _agencyValue;
   List<String> _plantVariety = [];
 
-  String? _mediaFilePathName;
   List _mediaList = [];
   bool _isImageUploading = false;
   bool _isImageDeleting = false;
@@ -1442,48 +1441,118 @@ class _FormFieldsState extends State<FormFields> {
   Future<void> _pickMedia(BuildContext context,
       {required ImageSource source, bool isVideo = false}) async {
     final mediaContext = context;
+    bool wasWidgetMounted = mounted;
 
     try {
       final picker = ImagePicker();
       final media = isVideo
           ? await picker.pickVideo(
               source: source, maxDuration: Duration(seconds: 30))
-          : await picker.pickImage(source: source, imageQuality: 80);
+          : await picker.pickImage(
+              source: source,
+              imageQuality: 80,
+              maxWidth: 1080,  // Add max width to prevent oversized images
+              maxHeight: 1920, // Add max height to prevent oversized images
+            );
 
-      if (media == null) return;
+      if (media == null) {
+        _logger.info('Media selection cancelled by user');
+        return;
+      }
 
       if (!mounted) return;
       setState(() {
         _isImageUploading = true;
-        _mediaFilePathName =
-            'plantations/${widget.regionDocument['regionName']}/regionMedia/${DateTime.now().millisecondsSinceEpoch.toString()}_${isVideo ? 'video' : 'image'}.${isVideo ? 'mp4' : 'jpg'}';
       });
-
-      final String mediaFilePathName = _mediaFilePathName!;
 
       final file = File(media.path);
-      final storageRef =
-          FirebaseStorage.instance.ref().child(mediaFilePathName);
+      if (!await file.exists()) {
+        throw Exception('Selected file does not exist');
+      }
 
-      await storageRef.putFile(file);
-      final downloadUrl = await storageRef.getDownloadURL();
+      final fileSize = await file.length();
+      _logger.info('Selected file size: [36m${fileSize / 1024 / 1024}MB[0m');
 
-      if (!mounted) return;
-      setState(() {
-        _isImageUploading = false;
-        _mediaList.add(downloadUrl);
-        _totalMediaCount++;
-      });
+      if (fileSize == 0) {
+        throw Exception('Selected file is empty');
+      }
 
-      if (!mounted) return;
-      if (mediaContext.mounted) {
-        ScaffoldMessenger.of(mediaContext).showSnackBar(
-          const SnackBar(content: Text('Media uploaded successfully!')),
-        );
+      if (isVideo) {
+        if (fileSize > 30 * 1024 * 1024) {
+          throw Exception('File size too large. Maximum size is 30MB.');
+        }
+      } else {
+        if (fileSize > 10 * 1024 * 1024) {
+          throw Exception('File size too large. Maximum size is 10MB.');
+        }
+      }
+
+      // Create a unique filename
+      final mediaFilePathName = 'plantations/${widget.regionDocument['regionName']}/regionMedia/${DateTime.now().millisecondsSinceEpoch.toString()}_${isVideo ? 'video' : 'image'}.${isVideo ? 'mp4' : 'jpg'}';
+
+      final storageRef = FirebaseStorage.instance.ref().child(mediaFilePathName);
+
+      // Set appropriate metadata
+      final metadata = SettableMetadata(
+        contentType: isVideo ? 'video/mp4' : 'image/jpeg',
+        customMetadata: {
+          'file-size': fileSize.toString(),
+          'capture-timestamp': DateTime.now().toIso8601String(),
+        },
+      );
+
+      // Add retry logic for upload
+      int retryCount = 0;
+      const maxRetries = 3;
+      String? downloadUrl;
+      
+      while (retryCount < maxRetries) {
+        try {
+          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+          
+          final uploadTask = storageRef.putFile(file, metadata);
+          await uploadTask;
+
+          downloadUrl = await storageRef.getDownloadURL();
+          _logger.info('Upload successful: $downloadUrl');
+          break; // Success, exit retry loop
+        } catch (e) {
+          retryCount++;
+          _logger.warning('Upload attempt $retryCount failed: $e');
+          
+          if (retryCount == maxRetries) {
+            rethrow; // Rethrow if all retries failed
+          }
+          // Wait before retrying with exponential backoff
+          await Future.delayed(Duration(seconds: 1 * retryCount));
+        }
+      }
+
+      // Only update state if widget is still mounted
+      if (wasWidgetMounted && mounted) {
+        setState(() {
+          _isImageUploading = false;
+          if (downloadUrl != null) {
+            _mediaList.add(downloadUrl);
+            _totalMediaCount++;
+          }
+        });
+
+        // Only show snackbar if context is still valid
+        if (mediaContext.mounted) {
+          ScaffoldMessenger.of(mediaContext).showSnackBar(
+            SnackBar(
+              content: Text('${isVideo ? 'Video' : 'Image'} uploaded successfully!'),
+              backgroundColor: Theme.of(mediaContext).highlightColor,
+            ),
+          );
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _isImageUploading = false);
+      _logger.severe('Error during media upload: $e');
+      if (wasWidgetMounted && mounted) {
+        setState(() => _isImageUploading = false);
+      }
       if (mediaContext.mounted) {
         ScaffoldMessenger.of(mediaContext).showSnackBar(
           SnackBar(
@@ -1498,6 +1567,7 @@ class _FormFieldsState extends State<FormFields> {
                 ),
               ],
             ),
+            backgroundColor: Theme.of(mediaContext).colorScheme.error,
           ),
         );
       }
@@ -1609,6 +1679,12 @@ class _FormFieldsState extends State<FormFields> {
       final fileSize = await file.length();
       if (fileSize == 0) {
         throw Exception('Image file is empty');
+      }
+
+      // Add image format validation
+      final fileExtension = filePath.split('.').last.toLowerCase();
+      if (!['jpg', 'jpeg', 'png'].contains(fileExtension)) {
+        throw Exception('Unsupported image format. Please use JPG, JPEG, or PNG.');
       }
 
       if (fileSize > 10 * 1024 * 1024) {

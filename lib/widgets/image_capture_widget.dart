@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:coffee_mapper/utils/logger.dart';
+import 'package:flutter/services.dart';
 
 class ImageCaptureWidget extends StatefulWidget {
   final Function(String) onImageCaptured;
@@ -28,6 +29,9 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
     _checkPermissionsAndInitialize();
   }
 
@@ -134,6 +138,10 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
         throw Exception('Image file is empty');
       }
 
+      if (fileSize < 1024) { // 1KB minimum size
+        throw Exception('Image file is too small to process');
+      }
+
       if (fileSize > 10 * 1024 * 1024) { // 10MB limit for images
         throw Exception('Image file too large (max 10MB)');
       }
@@ -163,6 +171,12 @@ class _ImageCaptureWidgetState extends State<ImageCaptureWidget> {
   @override
   void dispose() {
     _controller?.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 

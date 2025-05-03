@@ -46,6 +46,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
   String? _selectedPanchayat;
   String? _selectedVillage;
   String? _selectedCategory;
+  String? _selectedPlantationType;
   bool _dataInTextField = false;
   final _regionNameController = TextEditingController();
   final Completer<gmap.GoogleMapController> _controller = Completer();
@@ -183,7 +184,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
     try {
       final firestore = FirebaseFirestore.instance;
       final user = FirebaseAuth.instance.currentUser;
-      
+
       if (user == null || user.email == null) {
         throw Exception('User not authenticated');
       }
@@ -192,31 +193,38 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
         throw Exception('Region name cannot be empty');
       }
 
-      if (_selectedCategory == null) {
-        throw Exception('Category not selected');
-      }
-
       // Validate all required fields
-      if (_selectedDistrict == null || 
-          _selectedTehsil == null || 
-          _selectedPanchayat == null || 
-          _selectedVillage == null) {
+      if (_selectedDistrict == null ||
+          _selectedTehsil == null ||
+          _selectedPanchayat == null ||
+          _selectedVillage == null ||
+          _selectedPlantationType == null) {
         throw Exception('All location fields must be selected');
       }
 
+      // Validate category based on plantation type
+      if (_selectedPlantationType != 'Coffee Nursery' && _selectedCategory == null) {
+        throw Exception('Plantation category must be selected');
+      }
+
       // Create document name with proper null safety
-      String documentName = '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
-      
+      String documentName =
+          '${DateTime.now().millisecondsSinceEpoch.toString()}_${_regionNameController.text.split(' ').join("_")}';
+
       if (documentName.isEmpty) {
         throw Exception('Invalid document name generated');
       }
 
       if (widget.shadeImagePaths.isNotEmpty) {
-        final String storageFolderName = (_selectedCategory != "Coffee Nursery") ? 'nurseries' : 'plantations';
+        final String storageFolderName = (_selectedCategory != "Coffee Nursery")
+            ? 'nurseries'
+            : 'plantations';
 
-        for (int indexCounter = 0; indexCounter < widget.shadeImagePaths.length; indexCounter++) {
+        for (int indexCounter = 0;
+            indexCounter < widget.shadeImagePaths.length;
+            indexCounter++) {
           final file = File(widget.shadeImagePaths[indexCounter]);
-          
+
           // Validate file exists and is accessible
           if (!await file.exists()) {
             _logger.warning('Image file does not exist: ${file.path}');
@@ -229,7 +237,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
                 .split('/')
                 .last
                 .replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-                
+
             final storageRef = FirebaseStorage.instance.ref().child(
                 "$storageFolderName/${_regionNameController.text}/boundaryImages/${widget.shadeImageLocations[indexCounter].latitude}_${widget.shadeImageLocations[indexCounter].longitude}_$sanitizedPath");
 
@@ -238,12 +246,12 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
               cacheControl: 'public, max-age=31536000',
               contentType: 'image/jpeg',
             );
-            
+
             // Upload with retry logic
             bool uploadSuccess = false;
             int retryCount = 0;
             const maxRetries = 3;
-            
+
             while (!uploadSuccess && retryCount < maxRetries) {
               try {
                 await storageRef.putFile(file, metadata);
@@ -252,7 +260,9 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
               } catch (error) {
                 retryCount++;
                 if (retryCount == maxRetries) {
-                  _logger.severe('Failed to upload image after $maxRetries attempts: ${file.path}', error);
+                  _logger.severe(
+                      'Failed to upload image after $maxRetries attempts: ${file.path}',
+                      error);
                   rethrow;
                 }
                 // Wait before retrying (exponential backoff)
@@ -393,7 +403,7 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
 
     try {
       final gmap.GoogleMapController controller = await _controller.future;
-      
+
       // Ensure snapshot is taken on the main thread
       final Uint8List? imageBytes = await Future.delayed(Duration.zero, () {
         return controller.takeSnapshot();
@@ -709,32 +719,65 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
           },
         ),
         const SizedBox(height: 30),
-        // Category Input
+        // Plantation Type Input
         _buildDropdown(
           context,
-          label: 'Project Category',
-          hint: 'Select plantation category',
-          value: _selectedCategory,
+          label: 'Plantation Type',
+          hint: 'Select plantation type',
+          value: _selectedPlantationType,
           items: [
-            "Old Shade",
-            "New Shade",
-            "Non Bearing Coffee",
-            "Bearing Coffee",
-            "Private Plantation Coffee",
+            "Shade Plantation",
+            "Coffee Plantation",
             "Coffee Nursery"
-          ], // Category options
+          ],
           onChanged: (value) {
             setState(() {
-              _selectedCategory = value;
+              _selectedPlantationType = value;
+              if (_selectedPlantationType == 'Coffee Nursery') {
+                _selectedCategory = 'Coffee Nursery';
+              } else {
+                _selectedCategory = null; // Reset category when plantation type changes
+              }
             });
           },
         ),
-        SizedBox(height: 30),
+        if (_selectedPlantationType != null && _selectedPlantationType != 'Coffee Nursery') ...[
+          const SizedBox(height: 30),
+          // Plantation Category Input
+          _buildDropdown(
+            context,
+            label: 'Plantation Category',
+            hint: 'Select plantation category',
+            value: _selectedCategory,
+            items: _selectedPlantationType == 'Shade Plantation'
+                ? [ 
+                    "Old Shade",
+                    "New Shade",
+                    "Pre Survey Shade",
+                  ]
+                : [
+                    "Non Bearing Coffee",
+                    "Bearing Coffee",
+                    "Pre Survey Coffee",
+                    "Private Plantation Coffee",
+                  ],
+            onChanged: (value) {
+              setState(() {
+                _selectedCategory = value;
+              });
+            },
+          ),
+        ],
+        const SizedBox(height: 30),
         // Region name input
         _buildTextField(
           context,
-          label: (_selectedCategory == 'Coffee Nursery') ? 'SHG/SC Range Name' : 'Project Name',
-          hint: (_selectedCategory == 'Coffee Nursery') ? 'Enter name of the Range' : 'Enter name of the project',
+          label: (_selectedCategory == 'Coffee Nursery')
+              ? 'SHG/SC Range Name'
+              : 'Project Name',
+          hint: (_selectedCategory == 'Coffee Nursery')
+              ? 'Enter name of the Range'
+              : 'Enter name of the project',
           controller: _regionNameController,
         ),
         SizedBox(height: 30),
@@ -928,19 +971,22 @@ class _ShadeDetailsScreenState extends State<ShadeDetailsScreen> {
             setState(() {
               _hideSaveField = false;
             });
-            FocusScope.of(context).unfocus(); // Dismiss keyboard when tapping outside
+            FocusScope.of(context)
+                .unfocus(); // Dismiss keyboard when tapping outside
           },
           onEditingComplete: () {
             setState(() {
               _hideSaveField = false;
             });
-            FocusScope.of(context).unfocus(); // Dismiss keyboard when editing is complete
+            FocusScope.of(context)
+                .unfocus(); // Dismiss keyboard when editing is complete
           },
           onFieldSubmitted: (value) {
             setState(() {
               _hideSaveField = false;
             });
-            FocusScope.of(context).unfocus(); // Dismiss keyboard when enter is pressed
+            FocusScope.of(context)
+                .unfocus(); // Dismiss keyboard when enter is pressed
           },
           controller: controller,
           onChanged: (value) {

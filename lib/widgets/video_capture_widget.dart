@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:video_player/video_player.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:coffee_mapper/utils/logger.dart';
+import 'package:flutter/services.dart';
 
 class VideoCaptureWidget extends StatefulWidget {
   final Function(String) onVideoRecorded;
@@ -35,6 +36,9 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
     _checkPermissionsAndInitialize();
   }
 
@@ -229,6 +233,12 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
     _recordingTimer?.cancel();
     _videoPlayerController?.dispose();
     _controller?.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -263,27 +273,37 @@ class _VideoCaptureWidgetState extends State<VideoCaptureWidget> {
                 alignment: Alignment.center,
                 children: [
                   SizedBox.expand(
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _videoPlayerController!.value.size.width,
-                        height: _videoPlayerController!.value.size.height,
-                        child: VideoPlayer(_videoPlayerController!),
+                    child: VideoPlayer(_videoPlayerController!),
+                  ),
+                  if (!_isPlaying)
+                    GestureDetector(
+                      onTap: _togglePlayPause,
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(128),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          size: 48,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                  // Play/Pause overlay
-                  GestureDetector(
-                    onTap: _togglePlayPause,
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Icon(
-                        _isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 64,
-                        color: Colors.white.withAlpha(179),
+                  if (_isPlaying)
+                    GestureDetector(
+                      onTap: _togglePlayPause,
+                      child: Container(
+                        color: Colors.transparent,
+                        child: const Icon(
+                          Icons.pause,
+                          size: 48,
+                          color: Color(0xB3FFFFFF),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               )
             else

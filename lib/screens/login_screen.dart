@@ -77,15 +77,13 @@ class _LoginScreenState extends State<LoginScreen> {
       
       // If we have a user at this point, we're authenticated
       if (user != null && user.email != null) {
-        // Check admin status
-        if (!mounted) return;
+        // Start admin status check in background
         if (providerContext.mounted) {
-          await providerContext
-              .read<AdminProvider>()
-              .checkAdminStatus(user.email!);
+          // Don't await this call
+          providerContext.read<AdminProvider>().checkAdminStatus(user.email!);
         }
   
-        // Navigate to the main menu screen
+        // Navigate to the main menu screen immediately
         if (navigatorContext.mounted) {
           Navigator.pushReplacement(navigatorContext,
               MaterialPageRoute(builder: (context) => const HomeScreen()));
