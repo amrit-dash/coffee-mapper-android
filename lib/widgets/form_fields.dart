@@ -43,12 +43,23 @@ class _FormFieldsState extends State<FormFields> {
   final _beneficiariesCountController = TextEditingController();
   final _treeHeightController = TextEditingController();
   final _yeildValueController = TextEditingController();
+  final _elevationController = TextEditingController();
+  final _maxTempController = TextEditingController();
 
   String? _plantationYear;
   String? _regionCategory;
   String? _shadeType;
   String? _agencyValue;
+  String? _slope;
+  String? _ph;
+  String? _aspect;
   List<String> _plantVariety = [];
+
+  // Static dropdown values for new fields
+  final List<String> _coffeeShadeTypes = ["Natural: 30 - 40/Ac", "Silveroak: 500 - 600/Ac"];
+  final List<String> _slopeValues = ["< 45°", "45° - 60°", "> 60°"];
+  final List<String> _phValues = ["5.0 - 5.5", "5.5 - 6.0", "6.0 - 6.5", "6.5 - 7.0"];
+  final List<String> _aspectValues = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
   List _mediaList = [];
   bool _isImageUploading = false;
@@ -158,6 +169,23 @@ class _FormFieldsState extends State<FormFields> {
       if (insightsDoc['mediaURLs'] != null) {
         _mediaList = List<String>.from(insightsDoc['mediaURLs']);
         _totalMediaCount = _mediaList.length;
+      }
+
+      // Initialize new fields
+      if (insightsDoc['elevation'] != null) {
+        _elevationController.text = insightsDoc['elevation'].toString();
+      }
+      if (insightsDoc['slope'] != null) {
+        _slope = insightsDoc['slope'];
+      }
+      if (insightsDoc['maxTemp'] != null) {
+        _maxTempController.text = insightsDoc['maxTemp'].toString();
+      }
+      if (insightsDoc['ph'] != null) {
+        _ph = insightsDoc['ph'];
+      }
+      if (insightsDoc['aspect'] != null) {
+        _aspect = insightsDoc['aspect'];
       }
     });
   }
@@ -420,7 +448,97 @@ class _FormFieldsState extends State<FormFields> {
                     controller: _yeildValueController,
                   ),
                   const SizedBox(height: 15),
+                  // Shade Type for Coffee
+                  _buildFormField(context,
+                      fieldName: 'Shade Type',
+                      fieldType: 'dropDown',
+                      fieldOptions: _coffeeShadeTypes,
+                      validation: true,
+                      dense: true,
+                      fieldValue: _shadeType, onChanged: (String? value) {
+                    setState(() {
+                      _shadeType = value!;
+                    });
+                  }),
+                  const SizedBox(height: 15),
                 ],
+
+                // Common fields for both Shade and Coffee
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildFormField(
+                      context,
+                      fieldName: 'Elevation',
+                      fieldType: 'textInput',
+                      dataType: 'double',
+                      trailingText: 'm',
+                      validation: true,
+                      dense: true,
+                      controller: _elevationController,
+                    ),
+                    _buildFormField(
+                      context,
+                      fieldName: 'Max Temperature',
+                      fieldType: 'textInput',
+                      dataType: 'double',
+                      trailingText: '°C',
+                      validation: true,
+                      dense: true,
+                      controller: _maxTempController,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildFormField(
+                      context,
+                      fieldName: 'Slope',
+                      fieldType: 'dropDown',
+                      fieldOptions: _slopeValues,
+                      validation: true,
+                      dense: true,
+                      fieldValue: _slope,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _slope = value!;
+                        });
+                      },
+                    ),
+                    _buildFormField(
+                      context,
+                      fieldName: 'Aspect',
+                      fieldType: 'dropDown',
+                      fieldOptions: _aspectValues,
+                      validation: true,
+                      dense: true,
+                      fieldValue: _aspect,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _aspect = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                _buildFormField(
+                  context,
+                  fieldName: 'PH Value',
+                  fieldType: 'dropDown',
+                  fieldOptions: _phValues,
+                  validation: true,
+                  dense: true,
+                  fieldValue: _ph,
+                  onChanged: (String? value) {
+                    setState(() {
+                      _ph = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 15),
 
                 //Agency
                 _buildFormField(context,
@@ -441,19 +559,21 @@ class _FormFieldsState extends State<FormFields> {
                     fieldName: 'Update Plantation Category',
                     fieldType: 'dropDown',
                     fieldOptions: (_isShade)
-                        ? ["New Shade", "Old Shade"]
+                        ? ["New Shade", "Old Shade", "Pre Survey Shade"]
                         : [
                             "Bearing Coffee",
                             "Non Bearing Coffee",
+                            "Pre Survey Coffee",
                             "Private Plantation Coffee"
                           ],
                     validation: true,
                     dense: true,
-                    fieldValue: _regionCategory, onChanged: (String? value) {
-                  setState(() {
-                    _regionCategory = value!;
-                  });
-                }),
+                    fieldValue: _regionCategory, 
+                    onChanged: (String? value) {
+                      setState(() {
+                        _regionCategory = value!;
+                      });
+                    }),
                 const SizedBox(height: 40),
                 // Media
                 _buildFormField(
@@ -833,6 +953,11 @@ class _FormFieldsState extends State<FormFields> {
   }) {
     final isAdmin = context.read<AdminProvider>().isAdmin;
 
+    // Ensure value exists in items list
+    if (value != null && !items.contains(value)) {
+      value = null;  // Reset value if it's not in the items list
+    }
+
     return Theme(
       data: Theme.of(context).copyWith(
         canvasColor: Theme.of(context).dialogTheme.backgroundColor ??
@@ -908,7 +1033,7 @@ class _FormFieldsState extends State<FormFields> {
 
           // Add validator for required field
           if (value == null || value.isEmpty) {
-            return 'Please enter a value';
+            return 'Please select a value';
           }
           return null;
         },
@@ -990,6 +1115,58 @@ class _FormFieldsState extends State<FormFields> {
 
             if (percentage < 0 || percentage > 100) {
               return 'Invalid % value!';
+            }
+          }
+
+          // Add validation for elevation (max 3 digits before decimal, 2 after)
+          if (trailingText == "m") {
+            final elevation = double.tryParse(value);
+            if (elevation == null) {
+              return 'Please enter a valid elevation';
+            }
+
+            if (elevation < 0) {
+              return 'Elevation cannot be negative';
+            }
+
+            final parts = value.split('.');
+            if (parts[0].length > 3) {
+              return 'Maximum 3 digits before decimal';
+            }
+
+            if (parts.length > 1 && parts[1].length > 2) {
+              // Schedule the update for after the frame
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                controller.text = elevation.toStringAsFixed(2);
+              });
+            }
+
+            if (elevation > 999.99) {
+              return 'Maximum elevation is 999.99m';
+            }
+          }
+
+          // Add validation for max temp (max 2 digits before decimal, 2 after)
+          if (trailingText == "°C") {
+            final temp = double.tryParse(value);
+            if (temp == null) {
+              return 'Please enter a valid temperature';
+            }
+
+            final parts = value.split('.');
+            if (parts[0].length > 2) {
+              return 'Maximum 2 digits before decimal';
+            }
+
+            if (parts.length > 1 && parts[1].length > 2) {
+              // Schedule the update for after the frame
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                controller.text = temp.toStringAsFixed(2);
+              });
+            }
+
+            if (temp > 99.99) {
+              return 'Maximum temperature is 99.99°C';
             }
           }
 
@@ -1811,6 +1988,15 @@ class _FormFieldsState extends State<FormFields> {
             : double.parse(_treeHeightController.text),
         'mediaURLs': _mediaList.isEmpty ? null : _mediaList,
         'regionCategory': _regionCategory,
+        'elevation': _elevationController.text.isEmpty
+            ? null
+            : double.parse(_elevationController.text),
+        'slope': _slope,
+        'maxTemp': _maxTempController.text.isEmpty
+            ? null
+            : double.parse(_maxTempController.text),
+        'ph': _ph,
+        'aspect': _aspect,
       };
 
       // If admin made changes to area/boundary
