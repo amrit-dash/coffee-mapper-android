@@ -43,23 +43,43 @@ class _FormFieldsState extends State<FormFields> {
   final _beneficiariesCountController = TextEditingController();
   final _treeHeightController = TextEditingController();
   final _yeildValueController = TextEditingController();
-  final _elevationController = TextEditingController();
-  final _maxTempController = TextEditingController();
 
   String? _plantationYear;
   String? _regionCategory;
   String? _shadeType;
   String? _agencyValue;
+  String? _elevation;
+  String? _maxTemp;
   String? _slope;
   String? _ph;
   String? _aspect;
   List<String> _plantVariety = [];
 
   // Static dropdown values for new fields
-  final List<String> _coffeeShadeTypes = ["Natural: 30 - 40/Ac", "Silveroak: 500 - 600/Ac"];
-  final List<String> _slopeValues = ["< 45°", "45° - 60°", "> 60°"];
-  final List<String> _phValues = ["5.0 - 5.5", "5.5 - 6.0", "6.0 - 6.5", "6.5 - 7.0"];
-  final List<String> _aspectValues = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  final List<String> _coffeeShadeTypes = [
+    "Natural : 20 - 30",
+    "Natural : 30 - 40",
+    "Silveroak : 400 - 500",
+    "Silveroak : 500 - 600"
+  ];
+  final List<String> _elevationValues = [
+    "800m - 900m",
+    "900m - 1000m",
+    "1000m - 1100m"
+  ];
+  final List<String> _maxTempValues = ["30°C - 35°C", "35°C - 40°C"];
+  final List<String> _slopeValues = ["30° - 45°", "45° - 60°"];
+  final List<String> _phValues = ["5 - 6", "6 - 7", "7 - 8"];
+  final List<String> _aspectValues = [
+    "N",
+    "NE",
+    "E",
+    "SE",
+    "S",
+    "SW",
+    "W",
+    "NW"
+  ];
 
   List _mediaList = [];
   bool _isImageUploading = false;
@@ -173,13 +193,13 @@ class _FormFieldsState extends State<FormFields> {
 
       // Initialize new fields
       if (insightsDoc['elevation'] != null) {
-        _elevationController.text = insightsDoc['elevation'].toString();
+        _elevation = insightsDoc['elevation'];
       }
       if (insightsDoc['slope'] != null) {
         _slope = insightsDoc['slope'];
       }
       if (insightsDoc['maxTemp'] != null) {
-        _maxTempController.text = insightsDoc['maxTemp'].toString();
+        _maxTemp = insightsDoc['maxTemp'];
       }
       if (insightsDoc['ph'] != null) {
         _ph = insightsDoc['ph'];
@@ -321,6 +341,107 @@ class _FormFieldsState extends State<FormFields> {
                   ],
                 ),
                 SizedBox(height: 20),
+                // Environmental Data
+                Center(
+                  child: Text(
+                    'Suitability Criteria Data',
+                    style: TextStyle(
+                      fontFamily: 'Gilroy-SemiBold',
+                      fontSize: 19,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 15),
+                _buildFormField(
+                  context,
+                  fieldName: 'Elevation',
+                  fieldType: 'dropDown',
+                  fieldOptions: _elevationValues,
+                  dense: true,
+                  fieldValue: _elevation,
+                  onChanged: (String? value) {
+                    setState(() {
+                      _elevation = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: 15),
+                _buildFormField(
+                  context,
+                  fieldName: 'Slope',
+                  fieldType: 'dropDown',
+                  fieldOptions: _slopeValues,
+                  dense: true,
+                  fieldValue: _slope,
+                  onChanged: (String? value) {
+                    setState(() {
+                      _slope = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildFormField(
+                      context,
+                      fieldName: 'Aspect',
+                      fieldType: 'dropDown',
+                      fieldOptions: _aspectValues,
+                      dense: true,
+                      fieldValue: _aspect,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _aspect = value!;
+                        });
+                      },
+                    ),
+                    _buildFormField(
+                      context,
+                      fieldName: 'Soil Acidity',
+                      fieldType: 'dropDown',
+                      fieldOptions: _phValues,
+                      dense: true,
+                      fieldValue: _ph,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _ph = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: 15),
+                _buildFormField(
+                  context,
+                  fieldName: 'Maximum Temperature',
+                  fieldType: 'dropDown',
+                  fieldOptions: _maxTempValues,
+                  dense: true,
+                  fieldValue: _maxTemp,
+                  onChanged: (String? value) {
+                    setState(() {
+                      _maxTemp = value!;
+                    });
+                  },
+                ),
+                if (!_isShade) ...[
+                  const SizedBox(height: 15),
+                  // Shade Type for Coffee
+                  _buildFormField(context,
+                      fieldName: 'Shade Status : Plants Per Acre',
+                      fieldType: 'dropDown',
+                      fieldOptions: _coffeeShadeTypes,
+                      validation: true,
+                      dense: true,
+                      fieldValue: _shadeType, onChanged: (String? value) {
+                    setState(() {
+                      _shadeType = value!;
+                    });
+                  }),
+                ],
+                const SizedBox(height: 20),
                 Center(
                   child: Text(
                     (_isShade) ? 'Shade Data' : 'Coffee Plantation Data',
@@ -332,6 +453,23 @@ class _FormFieldsState extends State<FormFields> {
                   ),
                 ),
                 SizedBox(height: 15),
+                //Shade Field
+                if (_isShade) ...[
+                  // Shade Type
+                  _buildFormField(context,
+                      fieldName: 'Shade Variety',
+                      fieldType: 'dropDown',
+                      fieldOptions: List<String>.from(
+                          widget.formDropDownData['shadeType']),
+                      validation: true,
+                      dense: true,
+                      fieldValue: _shadeType, onChanged: (String? value) {
+                    setState(() {
+                      _shadeType = value!;
+                    });
+                  }),
+                  const SizedBox(height: 15),
+                ],
                 //Plot Number and Khata Number Data
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -405,25 +543,6 @@ class _FormFieldsState extends State<FormFields> {
                 ),
                 const SizedBox(height: 15),
 
-                //Shade Field
-                if (_isShade) ...[
-                  // Shade Type
-                  _buildFormField(context,
-                      fieldName: 'Shade Type',
-                      fieldType: 'dropDown',
-                      fieldOptions: List<String>.from(
-                          widget.formDropDownData['shadeType']),
-                      validation: true,
-                      dense: true,
-                      fieldValue: _shadeType, onChanged: (String? value) {
-                    setState(() {
-                      _shadeType = value!;
-                    });
-                  }),
-
-                  const SizedBox(height: 15),
-                ],
-
                 //Coffee Field
                 if (!_isShade) ...[
                   // Plant Variety
@@ -448,97 +567,7 @@ class _FormFieldsState extends State<FormFields> {
                     controller: _yeildValueController,
                   ),
                   const SizedBox(height: 15),
-                  // Shade Type for Coffee
-                  _buildFormField(context,
-                      fieldName: 'Shade Type',
-                      fieldType: 'dropDown',
-                      fieldOptions: _coffeeShadeTypes,
-                      validation: true,
-                      dense: true,
-                      fieldValue: _shadeType, onChanged: (String? value) {
-                    setState(() {
-                      _shadeType = value!;
-                    });
-                  }),
-                  const SizedBox(height: 15),
                 ],
-
-                // Common fields for both Shade and Coffee
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildFormField(
-                      context,
-                      fieldName: 'Elevation',
-                      fieldType: 'textInput',
-                      dataType: 'double',
-                      trailingText: 'm',
-                      validation: true,
-                      dense: true,
-                      controller: _elevationController,
-                    ),
-                    _buildFormField(
-                      context,
-                      fieldName: 'Max Temperature',
-                      fieldType: 'textInput',
-                      dataType: 'double',
-                      trailingText: '°C',
-                      validation: true,
-                      dense: true,
-                      controller: _maxTempController,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildFormField(
-                      context,
-                      fieldName: 'Slope',
-                      fieldType: 'dropDown',
-                      fieldOptions: _slopeValues,
-                      validation: true,
-                      dense: true,
-                      fieldValue: _slope,
-                      onChanged: (String? value) {
-                        setState(() {
-                          _slope = value!;
-                        });
-                      },
-                    ),
-                    _buildFormField(
-                      context,
-                      fieldName: 'Aspect',
-                      fieldType: 'dropDown',
-                      fieldOptions: _aspectValues,
-                      validation: true,
-                      dense: true,
-                      fieldValue: _aspect,
-                      onChanged: (String? value) {
-                        setState(() {
-                          _aspect = value!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                _buildFormField(
-                  context,
-                  fieldName: 'PH Value',
-                  fieldType: 'dropDown',
-                  fieldOptions: _phValues,
-                  validation: true,
-                  dense: true,
-                  fieldValue: _ph,
-                  onChanged: (String? value) {
-                    setState(() {
-                      _ph = value!;
-                    });
-                  },
-                ),
-                const SizedBox(height: 15),
 
                 //Agency
                 _buildFormField(context,
@@ -568,12 +597,11 @@ class _FormFieldsState extends State<FormFields> {
                           ],
                     validation: true,
                     dense: true,
-                    fieldValue: _regionCategory, 
-                    onChanged: (String? value) {
-                      setState(() {
-                        _regionCategory = value!;
-                      });
-                    }),
+                    fieldValue: _regionCategory, onChanged: (String? value) {
+                  setState(() {
+                    _regionCategory = value!;
+                  });
+                }),
                 const SizedBox(height: 40),
                 // Media
                 _buildFormField(
@@ -955,7 +983,7 @@ class _FormFieldsState extends State<FormFields> {
 
     // Ensure value exists in items list
     if (value != null && !items.contains(value)) {
-      value = null;  // Reset value if it's not in the items list
+      value = null; // Reset value if it's not in the items list
     }
 
     return Theme(
@@ -1522,8 +1550,7 @@ class _FormFieldsState extends State<FormFields> {
         () async {
           if (isGallery) {
             await _pickMedia(context,
-                source: ImageSource.gallery,
-                isVideo: false);
+                source: ImageSource.gallery, isVideo: false);
           } else {
             // Show custom image capture widget
             if (!mounted) return;
@@ -1553,8 +1580,7 @@ class _FormFieldsState extends State<FormFields> {
         () async {
           if (isGallery) {
             await _pickMedia(context,
-                source: ImageSource.gallery,
-                isVideo: true);
+                source: ImageSource.gallery, isVideo: true);
           } else {
             // Show custom video capture widget
             if (!mounted) return;
@@ -1628,7 +1654,7 @@ class _FormFieldsState extends State<FormFields> {
           : await picker.pickImage(
               source: source,
               imageQuality: 80,
-              maxWidth: 1080,  // Add max width to prevent oversized images
+              maxWidth: 1080, // Add max width to prevent oversized images
               maxHeight: 1920, // Add max height to prevent oversized images
             );
 
@@ -1665,9 +1691,11 @@ class _FormFieldsState extends State<FormFields> {
       }
 
       // Create a unique filename
-      final mediaFilePathName = 'plantations/${widget.regionDocument['regionName']}/regionMedia/${DateTime.now().millisecondsSinceEpoch.toString()}_${isVideo ? 'video' : 'image'}.${isVideo ? 'mp4' : 'jpg'}';
+      final mediaFilePathName =
+          'plantations/${widget.regionDocument['regionName']}/regionMedia/${DateTime.now().millisecondsSinceEpoch.toString()}_${isVideo ? 'video' : 'image'}.${isVideo ? 'mp4' : 'jpg'}';
 
-      final storageRef = FirebaseStorage.instance.ref().child(mediaFilePathName);
+      final storageRef =
+          FirebaseStorage.instance.ref().child(mediaFilePathName);
 
       // Set appropriate metadata
       final metadata = SettableMetadata(
@@ -1682,11 +1710,12 @@ class _FormFieldsState extends State<FormFields> {
       int retryCount = 0;
       const maxRetries = 3;
       String? downloadUrl;
-      
+
       while (retryCount < maxRetries) {
         try {
-          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
-          
+          _logger.info(
+              'Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+
           final uploadTask = storageRef.putFile(file, metadata);
           await uploadTask;
 
@@ -1696,7 +1725,7 @@ class _FormFieldsState extends State<FormFields> {
         } catch (e) {
           retryCount++;
           _logger.warning('Upload attempt $retryCount failed: $e');
-          
+
           if (retryCount == maxRetries) {
             rethrow; // Rethrow if all retries failed
           }
@@ -1719,7 +1748,8 @@ class _FormFieldsState extends State<FormFields> {
         if (mediaContext.mounted) {
           ScaffoldMessenger.of(mediaContext).showSnackBar(
             SnackBar(
-              content: Text('${isVideo ? 'Video' : 'Image'} uploaded successfully!'),
+              content:
+                  Text('${isVideo ? 'Video' : 'Image'} uploaded successfully!'),
               backgroundColor: Theme.of(mediaContext).highlightColor,
             ),
           );
@@ -1751,7 +1781,8 @@ class _FormFieldsState extends State<FormFields> {
     }
   }
 
-  Future<void> _handleVideoRecorded(BuildContext context, String filePath) async {
+  Future<void> _handleVideoRecorded(
+      BuildContext context, String filePath) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -1774,7 +1805,8 @@ class _FormFieldsState extends State<FormFields> {
       // Create a new reference to the widget's document data
       final nurseryName = widget.regionDocument['regionName'];
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final mediaFileName = 'plantations/$nurseryName/regionMedia/${timestamp}_video.mp4';
+      final mediaFileName =
+          'plantations/$nurseryName/regionMedia/${timestamp}_video.mp4';
 
       if (wasWidgetMounted) {
         setState(() {
@@ -1797,11 +1829,12 @@ class _FormFieldsState extends State<FormFields> {
       int retryCount = 0;
       const maxRetries = 3;
       String? downloadUrl;
-      
+
       while (retryCount < maxRetries) {
         try {
-          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
-          
+          _logger.info(
+              'Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+
           final uploadTask = storageRef.putFile(file, metadata);
           await uploadTask;
 
@@ -1811,7 +1844,7 @@ class _FormFieldsState extends State<FormFields> {
         } catch (e) {
           retryCount++;
           _logger.warning('Upload attempt $retryCount failed: $e');
-          
+
           if (retryCount == maxRetries) {
             rethrow; // Rethrow if all retries failed
           }
@@ -1846,7 +1879,8 @@ class _FormFieldsState extends State<FormFields> {
     }
   }
 
-  Future<void> _handleImageCaptured(BuildContext context, String filePath) async {
+  Future<void> _handleImageCaptured(
+      BuildContext context, String filePath) async {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -1861,7 +1895,8 @@ class _FormFieldsState extends State<FormFields> {
       // Add image format validation
       final fileExtension = filePath.split('.').last.toLowerCase();
       if (!['jpg', 'jpeg', 'png'].contains(fileExtension)) {
-        throw Exception('Unsupported image format. Please use JPG, JPEG, or PNG.');
+        throw Exception(
+            'Unsupported image format. Please use JPG, JPEG, or PNG.');
       }
 
       if (fileSize > 10 * 1024 * 1024) {
@@ -1875,7 +1910,8 @@ class _FormFieldsState extends State<FormFields> {
       // Create a new reference to the widget's document data
       final nurseryName = widget.regionDocument['regionName'];
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final mediaFileName = 'plantations/$nurseryName/regionMedia/${timestamp}_image.jpg';
+      final mediaFileName =
+          'plantations/$nurseryName/regionMedia/${timestamp}_image.jpg';
 
       if (wasWidgetMounted) {
         setState(() {
@@ -1898,11 +1934,12 @@ class _FormFieldsState extends State<FormFields> {
       int retryCount = 0;
       const maxRetries = 3;
       String? downloadUrl;
-      
+
       while (retryCount < maxRetries) {
         try {
-          _logger.info('Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
-          
+          _logger.info(
+              'Attempting upload (attempt ${retryCount + 1}/$maxRetries)');
+
           final uploadTask = storageRef.putFile(file, metadata);
           await uploadTask;
 
@@ -1912,7 +1949,7 @@ class _FormFieldsState extends State<FormFields> {
         } catch (e) {
           retryCount++;
           _logger.warning('Upload attempt $retryCount failed: $e');
-          
+
           if (retryCount == maxRetries) {
             rethrow; // Rethrow if all retries failed
           }
@@ -1988,13 +2025,9 @@ class _FormFieldsState extends State<FormFields> {
             : double.parse(_treeHeightController.text),
         'mediaURLs': _mediaList.isEmpty ? null : _mediaList,
         'regionCategory': _regionCategory,
-        'elevation': _elevationController.text.isEmpty
-            ? null
-            : double.parse(_elevationController.text),
+        'elevation': _elevation,
         'slope': _slope,
-        'maxTemp': _maxTempController.text.isEmpty
-            ? null
-            : double.parse(_maxTempController.text),
+        'maxTemp': _maxTemp,
         'ph': _ph,
         'aspect': _aspect,
       };
