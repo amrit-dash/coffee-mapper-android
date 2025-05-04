@@ -433,7 +433,6 @@ class _FormFieldsState extends State<FormFields> {
                       fieldName: 'Shade Status : Plants Per Acre',
                       fieldType: 'dropDown',
                       fieldOptions: _coffeeShadeTypes,
-                      validation: true,
                       dense: true,
                       fieldValue: _shadeType, onChanged: (String? value) {
                     setState(() {
