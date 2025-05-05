@@ -70,6 +70,83 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
 
   Future<void> _checkLocationService() async {
     try {
+      // First check if we already have background location permission
+      final backgroundStatus = await Permission.locationAlways.status;
+      final locationStatus = await Permission.location.status;
+      
+      // If we don't have any location permissions yet, show compliance notice
+      if (!backgroundStatus.isGranted && !locationStatus.isGranted) {
+        if (!mounted) return;
+        
+        // Show compliance notice
+        final bool? userConsent = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text(
+              'Important Privacy Notice',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Coffee Mapper collects and uses your precise location data to:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 12),
+                Text('• Map and measure coffee plot boundaries'),
+                Text('• Track plot locations even when the app is closed'),
+                Text('• Save plot coordinates for future reference'),
+                SizedBox(height: 12),
+                Text(
+                  'Your location data will be used in the background to ensure accurate plot mapping. This means the app will access your location even when closed or not in use.',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'You can stop location tracking anytime using the complete button or by closing the app.',
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Decline'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'Accept',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        // If user declined, go back to main menu with message
+        if (userConsent != true) {
+          if (!mounted) return;
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permissions are needed to load maps...'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+      }
+
+      // Continue with existing location service check
       bool serviceEnabled = await _location.serviceEnabled();
 
       if (!serviceEnabled) {
