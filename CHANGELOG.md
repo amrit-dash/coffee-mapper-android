@@ -17,17 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New Shade Type options specifically for Coffee plantations:
   - "Natural: 30 - 40/Ac"
   - "Silveroak: 500 - 600/Ac"
+- Added prominent disclosure dialog for location permissions compliance with Google Play policies
+  - Clear explanation of location data collection and usage
+  - Explicit mention of background location tracking
+  - User-friendly consent flow before requesting permissions
 
 ### Changed
 - Modified Shade Type field to show different values based on plantation type
 - Enhanced form field validation with automatic decimal place rounding
 - Improved form layout with optimized field grouping
 - Updated dropdown handling to prevent value mismatch errors
+- Improved location permission request flow to comply with Google Play policies
+- Enhanced user communication regarding location permission requirements
 
 ### Fixed
 - Dropdown value assertion errors in plantation category selection
 - Form field state update issues during validation
 - Text controller update timing in validation logic
+- Google Play Store compliance issues with background location usage
 
 ## [2.3.3] - 2024-03-31
 
