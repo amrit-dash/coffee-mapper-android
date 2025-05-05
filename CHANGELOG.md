@@ -29,12 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated dropdown handling to prevent value mismatch errors
 - Improved location permission request flow to comply with Google Play policies
 - Enhanced user communication regarding location permission requirements
+- Updated Play Core libraries to app-update 2.1.0 for Android 14 compatibility
 
 ### Fixed
 - Dropdown value assertion errors in plantation category selection
 - Form field state update issues during validation
 - Text controller update timing in validation logic
 - Google Play Store compliance issues with background location usage
+- Android 14 compatibility issues with broadcast receivers in Play Core libraries
 
 ## [2.3.3] - 2024-03-31
 
