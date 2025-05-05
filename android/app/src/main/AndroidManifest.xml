@@ -34,7 +34,7 @@
             android:value="@string/maps_api_key" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="${mainActivityName}"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""

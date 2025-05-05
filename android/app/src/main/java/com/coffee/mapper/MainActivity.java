@@ -1,4 +1,4 @@
-package com.coffee.mapper.dev;
+package com.coffee.mapper;
 
 import io.flutter.embedding.android.FlutterActivity;
 
