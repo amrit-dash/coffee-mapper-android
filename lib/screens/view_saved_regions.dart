@@ -4,10 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/screens/interactive_shade_view.dart';
 import 'package:coffee_mapper/utils/logger.dart';
+import 'package:coffee_mapper/providers/admin_provider.dart';
 
 class ViewSavedRegionsScreen extends StatefulWidget {
   const ViewSavedRegionsScreen({super.key});
@@ -73,11 +76,22 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
   void _setupRegionsSubscription() {
     if (!mounted) return;
 
+    // Get current user and admin status
+    final user = FirebaseAuth.instance.currentUser;
+    final isAdmin = context.read<AdminProvider>().isAdmin;
+
     // Build the base query
     var query = FirebaseFirestore.instance
         .collection('savedRegions')
-        .where('regionCategory', isNotEqualTo: 'Archived')
-        .orderBy('updatedOn', descending: true);
+        .where('regionCategory', isNotEqualTo: 'Archived');
+
+    // Add user filter only if not admin
+    if (!isAdmin && user != null) {
+      query = query.where('savedBy', isEqualTo: user.email);
+    }
+
+    // Add ordering
+    query = query.orderBy('updatedOn', descending: true);
 
     // Subscribe to the Firestore stream
     _regionsSubscription = query.snapshots().listen((snapshot) {

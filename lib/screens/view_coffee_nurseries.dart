@@ -4,10 +4,13 @@ import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'package:coffee_mapper/screens/update_nursery_details.dart';
+import 'package:coffee_mapper/providers/admin_provider.dart';
 
 class ViewCoffeeNurseriesScreen extends StatefulWidget {
   const ViewCoffeeNurseriesScreen({super.key});
@@ -71,10 +74,22 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
   void _setupNurseriesSubscription() {
     if (!mounted) return;
 
+    // Get current user and admin status
+    final user = FirebaseAuth.instance.currentUser;
+    final isAdmin = context.read<AdminProvider>().isAdmin;
+
+    // Build the base query
     var query = FirebaseFirestore.instance
         .collection('coffeeNursery')
-        .where('status', isNotEqualTo: 'Archived')
-        .orderBy('updatedOn', descending: true);
+        .where('status', isNotEqualTo: 'Archived');
+
+    // Add user filter only if not admin
+    if (!isAdmin && user != null) {
+      query = query.where('savedBy', isEqualTo: user.email);
+    }
+
+    // Add ordering
+    query = query.orderBy('updatedOn', descending: true);
 
     _nurseriesSubscription = query.snapshots().listen((snapshot) {
       if (!mounted) return;
