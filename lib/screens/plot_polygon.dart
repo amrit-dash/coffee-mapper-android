@@ -570,26 +570,38 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
     _backgroundService.stopTracking().then((_) => _backgroundService.dispose());
 
     setState(() {
-      _polygonPoints.first = _polygonPoints.last;
-      _isTracking = false;
-      _isTrackEnd = true;
-      _showUndoButton = true;
+      try {
+        // Add a new point that is a copy of the first point to close the polygon
+        if (_polygonPoints.isNotEmpty) {
+          _polygonPoints.add(_polygonPoints.first);
+          
+          _isTracking = false;
+          _isTrackEnd = true;
+          _showUndoButton = true;
 
-      // Only create polygon if we have points
-      if (_polygonPoints.isNotEmpty) {
-        _polygons = {
-          gmap.Polygon(
-            polygonId: const gmap.PolygonId('shade'),
-            points: _polygonPoints,
-            strokeColor: Theme.of(context).colorScheme.secondary,
-            strokeWidth: 2,
-            fillColor:
-                Theme.of(context).colorScheme.secondary.withValues(alpha: 128),
+          // Update polygon with animation
+          _polygons = {
+            gmap.Polygon(
+              polygonId: const gmap.PolygonId('shade'),
+              points: _polygonPoints,
+              strokeColor: Theme.of(context).colorScheme.secondary,
+              strokeWidth: 2,
+              fillColor:
+                  Theme.of(context).colorScheme.secondary.withValues(alpha: 128),
+            ),
+          };
+
+          _getPolygonDetails();
+        }
+      } catch (e) {
+        // Handle any potential errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error completing polygon: $e'),
+            duration: const Duration(seconds: 2),
           ),
-        };
+        );
       }
-
-      _getPolygonDetails();
     });
   }
 
@@ -907,12 +919,34 @@ class _PlotPolygonScreenState extends State<PlotPolygonScreen> {
               backgroundColor: Theme.of(context).colorScheme.secondary,
               onPressed: () {
                 setState(() {
-                  // Keep the first point and continue tracking from the last point
-                  _isTracking = true;
-                  _isTrackEnd = false;
-                  _showUndoButton = false;
-                  _showCompleteButton = false;
-                  _isSnackbarShown = false;
+                  try {
+                    // Only remove last point if we have points and it's not the only point
+                    if (_polygonPoints.length > 1) {
+                      _polygonPoints.removeLast();
+                      
+                      _isTracking = true;
+                      _isTrackEnd = false;
+                      _showUndoButton = false;
+                      _showCompleteButton = false;
+                      _isSnackbarShown = false;
+
+                      // Show feedback to user
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Continue tracking from last point'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    // Handle any potential errors
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error undoing polygon: $e'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 });
                 // Restart tracking
                 _startTracking();
