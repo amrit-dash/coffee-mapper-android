@@ -1,4 +1,4 @@
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -76,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       
       // If we have a user at this point, we're authenticated
-      if (user != null && user.email != null) {
+      if (user != null) {
         // Start admin status check in background
         if (providerContext.mounted) {
           // Don't await this call
-          providerContext.read<AdminProvider>().checkAdminStatus(user.email!);
+          providerContext.read<UserProvider>().checkUserStatus(user.uid);
         }
   
         // Navigate to the main menu screen immediately

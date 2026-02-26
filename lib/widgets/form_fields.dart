@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_mapper/app_constants.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/utils/area_formatter.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -211,7 +211,7 @@ class _FormFieldsState extends State<FormFields> {
   }
 
   Future<void> _handleFieldClick(BuildContext context) async {
-    final isSuperAdmin = context.read<AdminProvider>().isSuperAdmin;
+    final isSuperAdmin = context.read<UserProvider>().isSuperAdmin;
     if (!isSuperAdmin || _areFieldsEditable) return;
 
     final result = await showDialog<bool>(
@@ -242,7 +242,7 @@ class _FormFieldsState extends State<FormFields> {
 
   @override
   Widget build(BuildContext context) {
-    final isSuperAdmin = context.watch<AdminProvider>().isSuperAdmin;
+    final isSuperAdmin = context.watch<UserProvider>().isSuperAdmin;
 
     return Form(
       //autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -978,7 +978,7 @@ class _FormFieldsState extends State<FormFields> {
     bool truncate = false,
     bool dense = false,
   }) {
-    final isAdmin = context.read<AdminProvider>().isAdmin;
+    final isAdmin = context.watch<UserProvider>().isAdmin;
 
     // Ensure value exists in items list
     if (value != null && !items.contains(value)) {
@@ -1077,7 +1077,7 @@ class _FormFieldsState extends State<FormFields> {
     bool dense = false,
     String trailingText = "NA",
   }) {
-    final isAdmin = context.read<AdminProvider>().isAdmin;
+    final isAdmin = context.watch<UserProvider>().isAdmin;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -1212,7 +1212,7 @@ class _FormFieldsState extends State<FormFields> {
     bool validation = false,
     bool dense = false,
   }) {
-    final isAdmin = context.read<AdminProvider>().isAdmin;
+    final isAdmin = context.watch<UserProvider>().isAdmin;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.7),

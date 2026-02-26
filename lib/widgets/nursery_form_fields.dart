@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_mapper/app_constants.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/utils/area_formatter.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -146,7 +146,7 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
   }
 
   Future<void> _handleFieldClick(BuildContext context) async {
-    final isSuperAdmin = context.read<AdminProvider>().isSuperAdmin;
+    final isSuperAdmin = context.read<UserProvider>().isSuperAdmin;
     if (!isSuperAdmin || _areFieldsEditable) return;
 
     final result = await showDialog<bool>(
@@ -177,7 +177,7 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
 
   @override
   Widget build(BuildContext context) {
-    final isSuperAdmin = context.watch<AdminProvider>().isSuperAdmin;
+    final isSuperAdmin = context.watch<UserProvider>().isSuperAdmin;
 
     return Form(
       key: _formKey,

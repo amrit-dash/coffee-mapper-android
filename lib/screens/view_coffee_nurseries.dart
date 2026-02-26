@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'package:coffee_mapper/screens/update_nursery_details.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 
 class ViewCoffeeNurseriesScreen extends StatefulWidget {
   const ViewCoffeeNurseriesScreen({super.key});
@@ -65,18 +65,35 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
     }
   }
 
+  bool? _currentIsAdmin;
+  String? _currentPanchayat;
+
   @override
   void initState() {
     super.initState();
-    _setupNurseriesSubscription();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = context.watch<UserProvider>();
+    
+    if (_currentIsAdmin != userProvider.isAdmin || 
+        _currentPanchayat != userProvider.allocatedPanchayat) {
+      _currentIsAdmin = userProvider.isAdmin;
+      _currentPanchayat = userProvider.allocatedPanchayat;
+      _setupNurseriesSubscription();
+    }
   }
 
   void _setupNurseriesSubscription() {
     if (!mounted) return;
+    _nurseriesSubscription?.cancel();
 
     // Get current user and admin status
     final user = FirebaseAuth.instance.currentUser;
-    final isAdmin = context.read<AdminProvider>().isAdmin;
+    final isAdmin = _currentIsAdmin ?? false;
+    final allocatedPanchayat = _currentPanchayat;
 
     // Build the base query
     var query = FirebaseFirestore.instance
@@ -85,7 +102,11 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
 
     // Add user filter only if not admin
     if (!isAdmin && user != null) {
-      query = query.where('savedBy', isEqualTo: user.email);
+      if (allocatedPanchayat != null && allocatedPanchayat.isNotEmpty && allocatedPanchayat != 'ALL') {
+        query = query.where('panchayat', isEqualTo: allocatedPanchayat);
+      } else if (allocatedPanchayat == null || allocatedPanchayat.isEmpty) {
+        query = query.where('savedBy', isEqualTo: user.email);
+      }
     }
 
     // Add ordering

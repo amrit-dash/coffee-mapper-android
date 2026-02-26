@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:coffee_mapper/widgets/header.dart';
 import 'package:coffee_mapper/screens/interactive_shade_view.dart';
 import 'package:coffee_mapper/utils/logger.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 
 class ViewSavedRegionsScreen extends StatefulWidget {
   const ViewSavedRegionsScreen({super.key});
@@ -67,18 +67,35 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
     }
   }
 
+  bool? _currentIsAdmin;
+  String? _currentPanchayat;
+
   @override
   void initState() {
     super.initState();
-    _setupRegionsSubscription();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = context.watch<UserProvider>();
+    
+    if (_currentIsAdmin != userProvider.isAdmin || 
+        _currentPanchayat != userProvider.allocatedPanchayat) {
+      _currentIsAdmin = userProvider.isAdmin;
+      _currentPanchayat = userProvider.allocatedPanchayat;
+      _setupRegionsSubscription();
+    }
   }
 
   void _setupRegionsSubscription() {
     if (!mounted) return;
+    _regionsSubscription?.cancel();
 
     // Get current user and admin status
     final user = FirebaseAuth.instance.currentUser;
-    final isAdmin = context.read<AdminProvider>().isAdmin;
+    final isAdmin = _currentIsAdmin ?? false;
+    final allocatedPanchayat = _currentPanchayat;
 
     // Build the base query
     var query = FirebaseFirestore.instance
@@ -87,7 +104,11 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
 
     // Add user filter only if not admin
     if (!isAdmin && user != null) {
-      query = query.where('savedBy', isEqualTo: user.email);
+      if (allocatedPanchayat != null && allocatedPanchayat.isNotEmpty && allocatedPanchayat != 'ALL') {
+        query = query.where('panchayat', isEqualTo: allocatedPanchayat);
+      } else if (allocatedPanchayat == null || allocatedPanchayat.isEmpty) {
+        query = query.where('savedBy', isEqualTo: user.email);
+      }
     }
 
     // Add ordering

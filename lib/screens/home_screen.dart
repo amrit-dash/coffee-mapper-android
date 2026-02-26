@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 
 import 'plot_polygon.dart';
 import 'view_saved_regions.dart';
@@ -10,6 +12,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userName = context.watch<UserProvider>().name;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -25,14 +29,25 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 65),
-                      const Text(
-                        'Hello,',
+                      const SizedBox(height: 50),
+                      Text(
+                        userName != null && userName.isNotEmpty ? 'Hello' : 'Hello,',
                         style: TextStyle(
                           fontFamily: 'Gilroy-SemiBold',
-                          fontSize: 55,
+                          fontSize: userName != null && userName.isNotEmpty ? 27 : 55,
+                          height: userName != null && userName.isNotEmpty ? 0.5 : null,
                         ),
                       ),
+                      if (userName != null && userName.isNotEmpty)
+                        Text(
+                          _getDisplayName(userName),
+                          style: TextStyle(
+                            fontFamily: 'Gilroy-SemiBold',
+                            fontSize: 50,
+                            color: Theme.of(context).highlightColor,
+                          ),
+                        ),
+                      const SizedBox(height: 7.5),
                       const Text(
                         'What would you like to do?',
                         style: TextStyle(
@@ -148,5 +163,25 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getDisplayName(String userName) {
+    if (userName.trim().isEmpty) return '';
+    final parts = userName.trim().split(' ');
+    final firstName = parts.first;
+
+    if (firstName.toLowerCase() == 'coffee') {
+      return '${parts.last},';
+    }
+
+    if (firstName.length < 3) {
+      if (userName.length <= 10) {
+        return '${userName.trim()},';
+      } else {
+        return '${parts.last},';
+      }
+    }
+
+    return '$firstName,';
   }
 }

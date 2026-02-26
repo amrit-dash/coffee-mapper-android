@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:coffee_mapper/providers/admin_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 
 class Header extends StatefulWidget {
@@ -119,7 +119,7 @@ class _HeaderState extends State<Header> {
               await FirebaseAuth.instance.signOut();
               
               if (providerContext.mounted) {
-                providerContext.read<AdminProvider>().reset();
+                providerContext.read<UserProvider>().reset();
               }
               
               if (navigatorContext.mounted) {
