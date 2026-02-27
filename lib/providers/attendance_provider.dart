@@ -219,9 +219,9 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<bool> verifyGeofence(String allocatedPanchayat, LocationData userLocationData) async {
+  Future<Map<String, String>?> verifyGeofence(String allocatedPanchayat, LocationData userLocationData) async {
     if (userLocationData.latitude == null || userLocationData.longitude == null) {
-      return false;
+      return null;
     }
     final userLatLng = mp.LatLng(userLocationData.latitude!, userLocationData.longitude!);
     
@@ -237,7 +237,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
         final List<dynamic> pointsStr = data['polygonPoints'];
         final polygon = GeofenceHelper.getPolygonPoints(pointsStr);
         if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
-          return true;
+          return {'id': doc.id, 'type': 'savedRegion'};
         }
       }
     }
@@ -254,15 +254,15 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
         final List<dynamic> pointsStr = data['polygonPoints'];
         final polygon = GeofenceHelper.getPolygonPoints(pointsStr);
         if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
-          return true;
+          return {'id': doc.id, 'type': 'coffeeNursery'};
         }
       }
     }
 
-    return false;
+    return null;
   }
 
-  Future<void> markAttendance(bool isCheckIn, LocationData location) async {
+  Future<void> markAttendance(bool isCheckIn, LocationData location, Map<String, String> regionInfo) async {
     if (_uid == null) throw Exception("User not authenticated.");
     
     // Write to the date we are currently tracking to avoid midnight edge cases
@@ -284,12 +284,16 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
       await docRef.set({
         'checkInTime': now,
         'checkInLocation': locationMap,
+        'checkInRegionId': regionInfo['id'],
+        'checkInRegionType': regionInfo['type'],
         'dateString': targetDateStr,
       }, SetOptions(merge: true));
     } else {
       await docRef.update({
         'checkOutTime': now,
         'checkOutLocation': locationMap,
+        'checkOutRegionId': regionInfo['id'],
+        'checkOutRegionType': regionInfo['type'],
       });
     }
   }

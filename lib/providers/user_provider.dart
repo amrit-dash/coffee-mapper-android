@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'dart:async';
-import 'dart:math';
 
 class UserProvider with ChangeNotifier {
   bool _isAdmin = false;
@@ -13,9 +12,6 @@ class UserProvider with ChangeNotifier {
   String? _allocatedPanchayat;
 
   final _logger = AppLogger.getLogger('UserProvider');
-  static const int _maxRetries = 5;
-  static const Duration _initialDelay = Duration(milliseconds: 500);
-  static const Duration _maxDelay = Duration(seconds: 5);
 
   bool get isAdmin => _isAdmin;
   bool get isSuperAdmin => _isSuperAdmin;
@@ -23,22 +19,21 @@ class UserProvider with ChangeNotifier {
   String? get role => _role;
   String? get allocatedPanchayat => _allocatedPanchayat;
 
-  Future<void> checkUserStatus(String uid) async {
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
+
+  void checkUserStatus(String uid) {
     if (_lastCheckedUid == uid) {
-      _logger.info('Using cached user status for $uid');
+      _logger.info('Using active user status stream for $uid');
       return;
     }
 
-    int retryCount = 0;
-    Duration delay = _initialDelay;
+    _userSubscription?.cancel();
+    _lastCheckedUid = uid;
 
-    while (retryCount < _maxRetries) {
-      try {
-        _logger.info('Checking user status for $uid (attempt ${retryCount + 1}/$_maxRetries)');
-        
-        final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
-        final doc = await docRef.get();
-
+    final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    
+    _userSubscription = docRef.snapshots().listen(
+      (doc) {
         if (doc.exists) {
           final data = doc.data();
           if (data != null) {
@@ -58,35 +53,25 @@ class UserProvider with ChangeNotifier {
           _isSuperAdmin = false;
         }
 
-        _lastCheckedUid = uid;
-        _logger.info('User status check successful: role=$_role, isAdmin=$_isAdmin, isSuperAdmin=$_isSuperAdmin');
+        _logger.info('User status updated: role=$_role, isAdmin=$_isAdmin, isSuperAdmin=$_isSuperAdmin');
         notifyListeners();
-        return; 
-      } catch (e) {
-        retryCount++;
-        _logger.warning('User status check attempt $retryCount failed: $e');
-        
-        if (retryCount == _maxRetries) {
-          _logger.severe('Failed to check user status after $retryCount attempts. Defaulting to non-admin access.');
-          _role = "USER";
-          _name = null;
-          _allocatedPanchayat = null;
-          _isAdmin = false;
-          _isSuperAdmin = false;
-          notifyListeners();
-          return;
-        }
+      },
+      onError: (e) {
+        _logger.warning('User status listen failed: $e');
+        _role = "USER";
+        _name = null;
+        _allocatedPanchayat = null;
+        _isAdmin = false;
+        _isSuperAdmin = false;
+        notifyListeners();
+      },
+    );
+  }
 
-        delay = Duration(milliseconds: min(
-          _maxDelay.inMilliseconds,
-          (_initialDelay.inMilliseconds * pow(2, retryCount - 1)).round() +
-              (Random().nextInt(1000)),
-        ));
-
-        _logger.info('Retrying user status check in ${delay.inSeconds} seconds...');
-        await Future.delayed(delay);
-      }
-    }
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 
   void reset() {
@@ -96,6 +81,8 @@ class UserProvider with ChangeNotifier {
     _role = null;
     _allocatedPanchayat = null;
     _lastCheckedUid = null;
+    _userSubscription?.cancel();
+    _userSubscription = null;
     notifyListeners();
   }
 }

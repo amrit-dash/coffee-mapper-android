@@ -155,16 +155,16 @@ class _AttendanceButtonState extends State<AttendanceButton> {
       }
 
       // 4. Verify Geofence
-      final isValid = await attendanceProvider.verifyGeofence(allocatedPanchayat, locationData);
+      final regionInfo = await attendanceProvider.verifyGeofence(allocatedPanchayat, locationData);
 
-      if (!isValid) {
+      if (regionInfo == null) {
         _showErrorSnackBar('Not within range of any allocated region.');
         attendanceProvider.setLoading(false);
         return;
       }
 
       // 5. Mark Attendance
-      await attendanceProvider.markAttendance(isCheckIn, locationData);
+      await attendanceProvider.markAttendance(isCheckIn, locationData, regionInfo);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
