@@ -5,6 +5,22 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2026-02-27
+
+### Added
+- Geofenced attendance tracking for field workers with strict location validation.
+- Real-time region detection to dynamically enable Check-In based on assigned panchayats.
+- Overnight session handling and midnight rollover support for continuous tracking.
+- Network Time Protocol (NTP) integration for secure, tamper-proof check-in/out timestamps.
+
+### Changed
+- Refactored `AttendanceProvider` to use real-time Firestore `.snapshots()` for instant UI updates when new regions are allocated.
+
+### Fixed
+- Fixed race condition (`NullThrownError`) when a user logs out during an active network time request.
+- Fixed UI state desynchronization issues near midnight rollovers by caching target dates.
+- Fixed silent fallbacks in attendance tracking by throwing proper authentication exceptions for correct UI error rendering.
+
 ## [3.0.0] - 2024-03-31
 
 ### Added

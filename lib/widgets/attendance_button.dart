@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:location/location.dart';
@@ -106,6 +107,8 @@ class _AttendanceButtonState extends State<AttendanceButton> {
   }
 
   Future<void> _handleAttendance(BuildContext context, String? allocatedPanchayat, AttendanceProvider attendanceProvider, bool isCheckIn) async {
+    if (attendanceProvider.isLoading) return; // Prevent double-taps
+    
     if (allocatedPanchayat == null || allocatedPanchayat.isEmpty) {
       _showErrorSnackBar('No allocated panchayat.');
       return;
@@ -138,7 +141,12 @@ class _AttendanceButtonState extends State<AttendanceButton> {
         const SnackBar(content: Text('Verifying location...'), duration: Duration(seconds: 1)),
       );
       
-      final locationData = await _location.getLocation();
+      final locationData = await _location.getLocation().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('Failed to get GPS lock. Please ensure you are outdoors with a clear view of the sky.');
+        },
+      );
 
       if (locationData.isMock == true) {
         _showErrorSnackBar('Mock locations are not allowed.');
@@ -167,7 +175,9 @@ class _AttendanceButtonState extends State<AttendanceButton> {
         );
       }
     } catch (e) {
-      if (e.toString().contains('unavailable') || e.toString().contains('UnknownHostException')) {
+      if (e is TimeoutException) {
+        _showErrorSnackBar(e.message ?? 'GPS timeout error.');
+      } else if (e.toString().contains('unavailable') || e.toString().contains('UnknownHostException')) {
         _showErrorSnackBar('Network error. Please check your internet connection.');
       } else {
         _showErrorSnackBar('Error: $e');

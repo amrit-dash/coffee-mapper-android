@@ -52,6 +52,12 @@ An Android application for Coffee Development Trust, Koraput to track and manage
 - Historical data tracking
 - Area-wise categorization
 
+🕒 **Attendance & Tracking**
+- Geofenced check-in and check-out
+- Real-time location validation against assigned regions
+- Secure timestamping with NTP integration
+- Background overnight session management
+
 🔄 **Sync & Backup**
 - Automatic data synchronization
 - Offline data persistence
