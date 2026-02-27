@@ -1,4 +1,5 @@
 import 'package:coffee_mapper/providers/user_provider.dart';
+import 'package:coffee_mapper/providers/attendance_provider.dart';
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (providerContext.mounted) {
           // Don't await this call
           providerContext.read<UserProvider>().checkUserStatus(user.uid);
+          providerContext.read<AttendanceProvider>().initialize(user.uid);
         }
   
         // Navigate to the main menu screen immediately

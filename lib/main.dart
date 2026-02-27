@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_mapper/providers/user_provider.dart';
+import 'package:coffee_mapper/providers/attendance_provider.dart';
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:coffee_mapper/screens/login_screen.dart';
 import 'package:coffee_mapper/screens/splash_screen.dart';
@@ -140,6 +141,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
       ],
       child: const CoffeeMapperApp(),
     ),

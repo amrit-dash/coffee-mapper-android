@@ -1,4 +1,5 @@
 import 'package:coffee_mapper/providers/user_provider.dart';
+import 'package:coffee_mapper/providers/attendance_provider.dart';
 import 'package:coffee_mapper/screens/home_screen.dart';
 import 'package:coffee_mapper/screens/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,7 @@ class AuthWrapper extends StatelessWidget {
             final currentUser = snapshot.data!;
             // Don't wait for the admin check, just trigger it
             context.read<UserProvider>().checkUserStatus(currentUser.uid);
+            context.read<AttendanceProvider>().initialize(currentUser.uid);
             // Show HomeScreen immediately
             return const HomeScreen();
           } else {

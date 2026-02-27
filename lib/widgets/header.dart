@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_mapper/providers/user_provider.dart';
+import 'package:coffee_mapper/providers/attendance_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
+import 'package:coffee_mapper/widgets/attendance_button.dart';
 
 class Header extends StatefulWidget {
   const Header({super.key});
@@ -107,12 +109,16 @@ class _HeaderState extends State<Header> {
               ],
             ),
           ),
-          // Logout button
-          IconButton(
-            icon: const Icon(Icons.logout),
-            style: IconButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
+          // Actions Row
+          Row(
+            children: [
+              const AttendanceButton(),
+              // Logout button
+              IconButton(
+                icon: const Icon(Icons.logout),
+                style: IconButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
             onPressed: () async {
               final providerContext = context;
               final navigatorContext = context;
@@ -120,6 +126,7 @@ class _HeaderState extends State<Header> {
               
               if (providerContext.mounted) {
                 providerContext.read<UserProvider>().reset();
+                providerContext.read<AttendanceProvider>().reset();
               }
               
               if (navigatorContext.mounted) {
@@ -129,6 +136,8 @@ class _HeaderState extends State<Header> {
                         builder: (context) => const LoginScreen()));
               }
             },
+          ),
+            ],
           ),
         ],
       ),
