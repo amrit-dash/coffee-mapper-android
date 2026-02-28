@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_mapper/utils/logger.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 class UserProvider with ChangeNotifier {
   bool _isAdmin = false;
@@ -31,6 +32,12 @@ class UserProvider with ChangeNotifier {
     _lastCheckedUid = uid;
 
     final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    docRef.update({
+      'lastLogin': DateFormat('dd/MM/yyyy, HH:mm:ss').format(DateTime.now()),
+    }).catchError((e) {
+      _logger.warning('Failed to update lastLogin: $e');
+    });
     
     _userSubscription = docRef.snapshots().listen(
       (doc) {

@@ -13,6 +13,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userName = context.watch<UserProvider>().name;
+    final userIsAdmin = context.watch<UserProvider>().isAdmin;
+    final userIsSuperAdmin = context.watch<UserProvider>().isSuperAdmin;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -31,11 +33,16 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 60),
                       Text(
-                        userName != null && userName.isNotEmpty ? 'Hello' : 'Hello,',
+                        userName != null && userName.isNotEmpty
+                            ? 'Hello'
+                            : 'Hello,',
                         style: TextStyle(
                           fontFamily: 'Gilroy-SemiBold',
-                          fontSize: userName != null && userName.isNotEmpty ? 27 : 55,
-                          height: userName != null && userName.isNotEmpty ? 0.5 : null,
+                          fontSize:
+                              userName != null && userName.isNotEmpty ? 27 : 55,
+                          height: userName != null && userName.isNotEmpty
+                              ? 0.5
+                              : null,
                         ),
                       ),
                       if (userName != null && userName.isNotEmpty)
@@ -64,7 +71,9 @@ class HomeScreen extends StatelessWidget {
                           // Navigate to the PlotPolygonScreen
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const PlotPolygonScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const PlotPolygonScreen()),
                           );
                         },
                       ),
@@ -76,7 +85,9 @@ class HomeScreen extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ViewSavedRegionsScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const ViewSavedRegionsScreen()),
                           );
                         },
                       ),
@@ -88,20 +99,19 @@ class HomeScreen extends StatelessWidget {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ViewCoffeeNurseriesScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const ViewCoffeeNurseriesScreen()),
                           );
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildMenuButton(
-                        context,
-                        icon: Icons.upload_file,
-                        title: 'Insert plantation by KML',
-                        onTap: () {
-
-                        },
-                        disabled: "yes"
-                      ),
+                      if (userIsAdmin || userIsSuperAdmin)
+                        _buildMenuButton(context,
+                            icon: Icons.upload_file,
+                            title: 'Insert plantation by KML',
+                            onTap: () {},
+                            disabled: "yes"),
                     ],
                   ),
                 ),
@@ -115,12 +125,12 @@ class HomeScreen extends StatelessWidget {
 
   // Widget for the menu buttons
   Widget _buildMenuButton(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required VoidCallback onTap,
-        disabled,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    disabled,
+  }) {
     return SizedBox(
       height: 80,
       child: FilledButton(
@@ -151,7 +161,9 @@ class HomeScreen extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: (disabled == "yes")
+                      ? Theme.of(context).canvasColor
+                      : Theme.of(context).colorScheme.secondary,
                   fontSize: 15.5,
                 ),
                 overflow: TextOverflow.ellipsis,
