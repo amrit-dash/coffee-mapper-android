@@ -167,8 +167,18 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
       } else {
         final data = snapshot.data();
         if (data != null) {
-          _checkInTime = (data['checkInTime'] as Timestamp?)?.toDate();
-          _checkOutTime = (data['checkOutTime'] as Timestamp?)?.toDate();
+          final checkInData = data['checkInData'] as Map?;
+          final checkOutData = data['checkOutData'] as Map?;
+          
+          _checkInTime = (checkInData?['time'] as Timestamp?)?.toDate() ?? (data['checkInTime'] as Timestamp?)?.toDate();
+          if (checkInData != null && _checkInTime == null) {
+            _checkInTime = DateTime.now();
+          }
+
+          _checkOutTime = (checkOutData?['time'] as Timestamp?)?.toDate() ?? (data['checkOutTime'] as Timestamp?)?.toDate();
+          if (checkOutData != null && _checkOutTime == null) {
+            _checkOutTime = DateTime.now();
+          }
 
           await _evaluateStatus();
           notifyListeners();
@@ -274,27 +284,36 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
         .doc(targetDateStr);
 
     final now = FieldValue.serverTimestamp();
-    final locationMap = {
+    
+    final checkData = {
       'latitude': location.latitude,
       'longitude': location.longitude,
-      'accuracy': location.accuracy,
+      'gpsAccuracy': location.accuracy,
+      'time': now,
+      'nearbyType': regionInfo['type'],
+      'nearbyId': regionInfo['id'],
     };
     
     if (isCheckIn) {
       await docRef.set({
-        'checkInTime': now,
-        'checkInLocation': locationMap,
-        'checkInRegionId': regionInfo['id'],
-        'checkInRegionType': regionInfo['type'],
+        'checkInData': checkData,
         'dateString': targetDateStr,
+        'markedBy': _uid,
       }, SetOptions(merge: true));
     } else {
-      await docRef.update({
-        'checkOutTime': now,
-        'checkOutLocation': locationMap,
-        'checkOutRegionId': regionInfo['id'],
-        'checkOutRegionType': regionInfo['type'],
-      });
+      final updateData = <String, dynamic>{
+        'checkOutData': checkData,
+        'markedBy': _uid,
+      };
+
+      if (_checkInTime != null) {
+        final currentTime = DateTime.now();
+        final diff = currentTime.difference(_checkInTime!);
+        final durationInHours = diff.inSeconds / 3600.0;
+        updateData['duration'] = double.parse(durationInHours.toStringAsFixed(1));
+      }
+
+      await docRef.update(updateData);
     }
   }
 

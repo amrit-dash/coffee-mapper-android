@@ -160,6 +160,7 @@ class CoffeeMapperApp extends StatelessWidget {
         primaryColor: const Color(0xFFc09366),
         scaffoldBackgroundColor: const Color(0xFFD5B799),
         cardColor: const Color(0xFFEADCC8),
+        canvasColor: const Color(0xFF85714D),
         dialogTheme: const DialogTheme(
           backgroundColor: Color(0xFFFAEEE6),
         ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 import '../providers/user_provider.dart';
 import '../providers/attendance_provider.dart';
 
@@ -221,7 +222,7 @@ class _AttendanceButtonState extends State<AttendanceButton> {
     final status = attendanceProvider.status;
     final hasRegions = attendanceProvider.hasRegions;
 
-    IconData buttonIcon = Icons.alarm;
+    Icon buttonIcon = Icon(Symbols.timer);
     Color? iconColor = Theme.of(context).colorScheme.secondary;
     VoidCallback? onPressed;
 
@@ -230,28 +231,30 @@ class _AttendanceButtonState extends State<AttendanceButton> {
     }
 
     if (status == AttendanceStatus.done) {
-      buttonIcon = Icons.check_circle_outline;
-      iconColor = Theme.of(context).highlightColor;
-      onPressed = null;
-    } else if (!hasRegions) {
-      buttonIcon = Icons.location_off;
+      buttonIcon = Icon(Symbols.check_circle, weight: 600);
       iconColor = Theme.of(context).colorScheme.secondary;
+      onPressed = () {
+        _showErrorSnackBar('Attendance recorded for today.');
+      };
+    } else if (!hasRegions) {
+      buttonIcon = Icon(Symbols.timer_off, weight: 600);
+      iconColor = Theme.of(context).canvasColor;
       onPressed = () {
         _showErrorSnackBar('No saved regions in your allocated panchayat.');
       };
     } else if (status == AttendanceStatus.locked) {
-      buttonIcon = Icons.lock_clock;
-      iconColor = Theme.of(context).colorScheme.secondary;
+      buttonIcon = Icon(Symbols.timer_5, weight: 600);
+      iconColor = Theme.of(context).canvasColor;
       onPressed = () {
-        _showErrorSnackBar('Already checked in. Please wait 5 mins to check out.');
+        _showErrorSnackBar('Please wait 5 mins to check out.');
       };
     } else if (status == AttendanceStatus.checkOut) {
-      buttonIcon = Icons.alarm_off;
+      buttonIcon = Icon(Symbols.timer_pause, weight: 600);
       iconColor = Theme.of(context).highlightColor;
       onPressed = () => _handleAttendance(context, allocatedPanchayat, attendanceProvider, false);
     } else {
-      // status == AttendanceStatus.checkIn
-      buttonIcon = Icons.alarm;
+      status == AttendanceStatus.checkIn;
+      buttonIcon = Icon(Symbols.timer_play, weight: 600);
       iconColor = Theme.of(context).highlightColor;
       onPressed = () {
         if (allocatedPanchayat == null || allocatedPanchayat.isEmpty) {
@@ -273,9 +276,12 @@ class _AttendanceButtonState extends State<AttendanceButton> {
                 size: 30,
               ),
             )
-          : Icon(buttonIcon),
+          : buttonIcon,
       color: iconColor,
       iconSize: 28,
+      style: ButtonStyle(
+
+      ),
       tooltip: status == AttendanceStatus.checkOut ? "Check Out" : "Check In",
     );
   }
