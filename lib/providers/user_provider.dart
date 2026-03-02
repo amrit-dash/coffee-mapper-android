@@ -33,10 +33,19 @@ class UserProvider with ChangeNotifier {
 
     final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
+    _logger.info('Attempting to update lastLogin for user $uid...');
     docRef.update({
       'lastLogin': DateFormat('dd/MM/yyyy, HH:mm:ss').format(DateTime.now()),
+    }).then((_) {
+      _logger.info('Successfully updated lastLogin for user $uid');
     }).catchError((e) {
-      _logger.warning('Failed to update lastLogin: $e');
+      _logger.severe('Failed to update lastLogin for user $uid. Error: $e');
+      if (e is FirebaseException && e.code == 'permission-denied') {
+        _logger.severe('Permission denied: Check Firestore rules for user writes.');
+      }
+      if (e is FirebaseException && e.code == 'not-found') {
+        _logger.severe('Not found: User document does not exist yet.');
+      }
     });
     
     _userSubscription = docRef.snapshots().listen(

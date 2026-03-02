@@ -99,6 +99,7 @@ firebase.json
 .firebase/
 .firebaserc
 firebase_options.dart
+firebase/
 
 # Keystore files
 *.jks
