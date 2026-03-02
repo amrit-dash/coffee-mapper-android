@@ -60,12 +60,12 @@ class FirebaseInitializer {
         if (!isProduction) {
           _logger.info('Initializing App Check in debug mode');
           await FirebaseAppCheck.instance.activate(
-            androidProvider: AndroidProvider.debug,
+            providerAndroid: AndroidDebugProvider(),
           );
         } else {
           _logger.info('Initializing App Check in release mode');
           await FirebaseAppCheck.instance.activate(
-            androidProvider: AndroidProvider.playIntegrity,
+            providerAndroid: AndroidPlayIntegrityProvider(),
           );
         }
         
@@ -161,7 +161,7 @@ class CoffeeMapperApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFD5B799),
         cardColor: const Color(0xFFEADCC8),
         canvasColor: const Color(0xFF85714D),
-        dialogTheme: const DialogTheme(
+        dialogTheme: const DialogThemeData(
           backgroundColor: Color(0xFFFAEEE6),
         ),
         unselectedWidgetColor: const Color(0xff402200),
