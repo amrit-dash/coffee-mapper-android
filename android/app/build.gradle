@@ -61,6 +61,8 @@ android {
         coreLibraryDesugaringEnabled true
     }
 
+    useLibrary 'org.apache.http.legacy'
+
     defaultConfig {
         applicationId "com.coffee.mapper"
         minSdkVersion 24
