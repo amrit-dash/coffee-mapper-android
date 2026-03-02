@@ -52,7 +52,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "com.coffee.mapper"
-    compileSdkVersion 36
+    compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {

@@ -74,7 +74,15 @@ if [ ! -f "$OBJCOPY" ]; then
 fi
 
 # Set up build directories
-BUILD_DIR="build/app/intermediates/merged_native_libs/$BUILD_TYPE/out/lib"
+# The path can vary depending on the Gradle version, so we find the out/lib directory
+PARENT_DIR="build/app/intermediates/merged_native_libs/$BUILD_TYPE"
+BUILD_DIR=$(find "$PARENT_DIR" -type d -path "*/out/lib" | head -n 1)
+
+if [ -z "$BUILD_DIR" ] || [ ! -d "$BUILD_DIR" ]; then
+    echo "ERROR: Could not find merged native libraries at $PARENT_DIR/**/out/lib"
+    exit 1
+fi
+
 TEMP_DIR="build/temp_symbols"
 rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR"
