@@ -12,7 +12,7 @@ on:
 env:
   FLUTTER_VERSION: '3.29.0'
   PUB_CACHE_DIR: ~/.pub-cache
-  KEYSTORE_PATH: ~/.android/debug.keystore
+  KEYSTORE_PATH: android/app/keystore/debug.keystore
   TZ: 'Asia/Kolkata'
 
 permissions:
@@ -132,14 +132,14 @@ jobs:
         id: restore-keystore
         uses: actions/cache/restore@v4
         with:
-          path: ~/.android/debug.keystore
+          path: ${{ env.KEYSTORE_PATH }}
           key: debug-keystore-${{ runner.os }}
           
       # Create debug keystore only if not restored from cache
       - name: Create Debug Keystore
         if: steps.restore-keystore.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ~/.android
+          mkdir -p android/app/keystore
           keytool -genkeypair \
             -keystore ${{ env.KEYSTORE_PATH }} \
             -storepass android \
@@ -156,7 +156,7 @@ jobs:
         if: steps.restore-keystore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.android/debug.keystore
+          path: ${{ env.KEYSTORE_PATH }}
           key: debug-keystore-${{ runner.os }}
             
       - name: Get and Cache SHA-1
