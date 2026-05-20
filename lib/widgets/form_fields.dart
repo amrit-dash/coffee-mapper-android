@@ -1033,7 +1033,7 @@ class _FormFieldsState extends State<FormFields> {
                 }).toList();
               },
         key: ValueKey(value),
-        initialValue: value,
+        value: value,
         // Show full text in dropdown items
         items: items.map((item) {
           return DropdownMenuItem(
