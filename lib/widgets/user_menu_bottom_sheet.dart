@@ -54,22 +54,6 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     );
   }
 
-  void _showSuccessSnackbar(String message) {
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final color = Theme.of(context).colorScheme.secondary;
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontFamily: 'Gilroy-Medium', fontSize: 14),
-        ),
-        backgroundColor: color,
-        elevation: 0,
-      ),
-    );
-  }
 
   // ── Location & permissions ────────────────────────────────────────────────
 
@@ -166,6 +150,53 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
   ) async {
     if (attendanceProvider.isLoading) return;
 
+    // Capture top-level UI references so notifications survive even if the
+    // user dismisses this bottom sheet (or navigates away) while the GPS
+    // lock / Firestore write is still in flight.
+    final messenger = ScaffoldMessenger.of(context);
+    final rootNavCtx = Navigator.of(context, rootNavigator: true).context;
+    final dialogBg = Theme.of(context).dialogTheme.backgroundColor;
+    final snackbarColor = Theme.of(context).colorScheme.secondary;
+
+    void notifyError(String title, String message) {
+      showDialog(
+        context: rootNavCtx,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: dialogBg,
+          title: Text(
+            title,
+            style: const TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: 18),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontFamily: 'Gilroy-Medium', fontSize: 15),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    void notifySuccess(String message) {
+      if (mounted) {
+        Navigator.pop(context); // close bottom sheet if still visible
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontFamily: 'Gilroy-Medium', fontSize: 14),
+          ),
+          backgroundColor: snackbarColor,
+          elevation: 0,
+        ),
+      );
+    }
+
     attendanceProvider.setLoading(true);
 
     try {
@@ -179,7 +210,7 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       if (!serviceEnabled) {
         serviceEnabled = await _location.requestService();
         if (!serviceEnabled) {
-          _showErrorDialog('Location Disabled', 'Location service is disabled.');
+          notifyError('Location Disabled', 'Location service is disabled.');
           attendanceProvider.setLoading(false);
           return;
         }
@@ -195,31 +226,29 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       );
 
       if (locationData.isMock == true) {
-        _showErrorDialog('Not Allowed', 'Mock locations are not allowed.');
+        notifyError('Not Allowed', 'Mock locations are not allowed.');
         attendanceProvider.setLoading(false);
         return;
       }
 
       final regionInfo = await attendanceProvider.verifyGeofence(allocatedPanchayat, locationData);
       if (regionInfo == null) {
-        _showErrorDialog('Out of Range', 'Not within range of any allocated region.');
+        notifyError('Out of Range', 'Not within range of any allocated region.');
         attendanceProvider.setLoading(false);
         return;
       }
 
       await attendanceProvider.markAttendance(isCheckIn, locationData, regionInfo);
 
-      _showSuccessSnackbar(
-        isCheckIn ? 'Successfully checked in!' : 'Attendance marked!',
-      );
+      notifySuccess(isCheckIn ? 'Successfully checked in!' : 'Attendance marked!');
     } catch (e) {
       if (e is TimeoutException) {
-        _showErrorDialog('GPS Timeout', e.message ?? 'GPS timeout error.');
+        notifyError('GPS Timeout', e.message ?? 'GPS timeout error.');
       } else if (e.toString().contains('unavailable') ||
           e.toString().contains('UnknownHostException')) {
-        _showErrorDialog('Network Error', 'Please check your internet connection.');
+        notifyError('Network Error', 'Please check your internet connection.');
       } else {
-        _showErrorDialog('Error', 'An unexpected error occurred.');
+        notifyError('Error', 'An unexpected error occurred.');
       }
     } finally {
       attendanceProvider.setLoading(false);
@@ -306,8 +335,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
   // ── Attendance button ─────────────────────────────────────────────────────
 
   static const double _btnHeight = 58;
-  static const double _iconSize = 30;
-  static const double _fontSize = 17;
+  static const double _iconSize = 26;
+  static const double _fontSize = 15;
   static const double _iconTextGap = 18;
 
   Widget _buildDisabledAttendanceButton(String label, IconData iconData) {
@@ -321,6 +350,10 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           style: FilledButton.styleFrom(
             backgroundColor: disabledBg,
             disabledBackgroundColor: disabledBg,
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.secondary,
+              width: 1.5,
+            ),
             shape: RoundedRectangleBorder(borderRadius: radius),
           ),
           child: Row(
@@ -387,6 +420,10 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
             style: FilledButton.styleFrom(
               backgroundColor: disabledBg,
               disabledBackgroundColor: disabledBg,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.secondary,
+                width: 1.5,
+              ),
               shape: RoundedRectangleBorder(borderRadius: radius),
             ),
             child: SizedBox(
@@ -403,13 +440,13 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     }
 
     if (status == AttendanceStatus.done) {
-      return _buildDisabledAttendanceButton('MARKED', Symbols.check_circle);
+      return _buildDisabledAttendanceButton('ATTENDANCE MARKED', Symbols.check_circle);
     }
     if (!hasRegions) {
       return _buildDisabledAttendanceButton('NO REGIONS', Symbols.timer_off);
     }
     if (status == AttendanceStatus.locked) {
-      return _buildDisabledAttendanceButton('WAIT 5 MINS', Symbols.timer_5);
+      return _buildDisabledAttendanceButton('WAIT FOR 5 MINS', Symbols.timer_5);
     }
 
     String label;
