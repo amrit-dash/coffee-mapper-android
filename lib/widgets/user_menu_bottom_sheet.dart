@@ -54,7 +54,6 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     );
   }
 
-
   // ── Location & permissions ────────────────────────────────────────────────
 
   Future<bool> _checkPermissions() async {
@@ -97,14 +96,16 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Accept', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Accept', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
       );
 
       if (userConsent != true) {
-        _showErrorDialog('Permission Required', 'Location permission is required for attendance.');
+        _showErrorDialog('Permission Required',
+            'Location permission is required for attendance.');
         return false;
       }
       _hasShownLocationDialog = true;
@@ -231,16 +232,20 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
         return;
       }
 
-      final regionInfo = await attendanceProvider.verifyGeofence(allocatedPanchayat, locationData);
+      final regionInfo = await attendanceProvider.verifyGeofence(
+          allocatedPanchayat, locationData);
       if (regionInfo == null) {
-        notifyError('Out of Range', 'Not within range of any allocated region.');
+        notifyError(
+            'Out of Range', 'Not within range of any allocated region.');
         attendanceProvider.setLoading(false);
         return;
       }
 
-      await attendanceProvider.markAttendance(isCheckIn, locationData, regionInfo);
+      await attendanceProvider.markAttendance(
+          isCheckIn, locationData, regionInfo);
 
-      notifySuccess(isCheckIn ? 'Successfully checked in!' : 'Attendance marked!');
+      notifySuccess(
+          isCheckIn ? 'Successfully checked in!' : 'Attendance marked!');
     } catch (e) {
       if (e is TimeoutException) {
         notifyError('GPS Timeout', e.message ?? 'GPS timeout error.');
@@ -469,7 +474,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     if (status == AttendanceStatus.checkOut) {
       label = 'CHECK OUT';
       iconData = Symbols.timer_pause;
-      onPressed = () => _handleAttendance(attendanceProvider, allocatedPanchayat ?? '', false);
+      onPressed = () => _handleAttendance(
+          attendanceProvider, allocatedPanchayat ?? '', false);
     } else {
       iconData = Symbols.timer_play;
       final panchayat = allocatedPanchayat ?? '';
@@ -506,7 +512,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
               const SizedBox(width: _iconTextGap),
               Text(
                 label,
-                style: const TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: _fontSize),
+                style: const TextStyle(
+                    fontFamily: 'Gilroy-SemiBold', fontSize: _fontSize),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -528,15 +535,35 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     final panchayat = userProvider.allocatedPanchayat ?? '—';
     final isUser = userProvider.role == 'USER';
 
-    final labelStyle = TextStyle(
+    final nameLabelStyle = TextStyle(
       fontFamily: 'Gilroy-Medium',
-      fontSize: 13,
+      fontSize: 15,
       color: Theme.of(context).canvasColor,
     );
-    final valueStyle = TextStyle(
+    final nameValueStyle = TextStyle(
       fontFamily: 'Gilroy-SemiBold',
-      fontSize: 19,
+      fontSize: 25,
       color: Theme.of(context).highlightColor,
+    );
+    final panchayatLabelStyle = TextStyle(
+      fontFamily: 'Gilroy-Medium',
+      fontSize: 15,
+      color: Theme.of(context).canvasColor,
+    );
+    final panchayatValueStyle = TextStyle(
+      fontFamily: 'Gilroy-SemiBold',
+      fontSize: 20,
+      color: Theme.of(context).highlightColor,
+    );
+    final roleLabelStyle = TextStyle(
+      fontFamily: 'Gilroy-Medium',
+      fontSize: 15,
+      color: Theme.of(context).canvasColor,
+    );
+    final roleValueStyle = TextStyle(
+      fontFamily: 'Gilroy-SemiBold',
+      fontSize: 20,
+      color: Theme.of(context).colorScheme.secondary,
     );
 
     return Padding(
@@ -566,11 +593,11 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Name', style: labelStyle),
+                    Text('Name', style: nameLabelStyle),
                     const SizedBox(height: 4),
                     Text(
                       name.isNotEmpty ? name : '—',
-                      style: valueStyle,
+                      style: nameValueStyle,
                     ),
                   ],
                 ),
@@ -585,18 +612,29 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           ),
           const SizedBox(height: 20),
 
-          if (isUser)
-          // Allocated Panchayat row
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Allocated Panchayat', style: labelStyle),
-              const SizedBox(height: 4),
-              Text(panchayat, style: valueStyle),
-            ],
-          ),
+          if (isUser) ...[
+            // Allocated Panchayat row
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Allocated Panchayat', style: panchayatLabelStyle),
+                const SizedBox(height: 4),
+                Text(panchayat, style: panchayatValueStyle),
+              ],
+            ),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text('User Account Level', style: roleLabelStyle),
+                const SizedBox(width: 10),
+                Text(':', style: roleLabelStyle),
+                const SizedBox(width: 10),
+                Text(userProvider.role ?? "ADMIN", style: roleValueStyle),
+              ],
+            ),
+
           const SizedBox(height: 30),
-          
 
           // Action buttons
           Row(
@@ -614,7 +652,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                     onPressed: _handleLogout,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFC62828),
-                      side: const BorderSide(color: Color(0xFFC62828), width: 1.5),
+                      side: const BorderSide(
+                          color: Color(0xFFC62828), width: 1.5),
                       backgroundColor: const Color(0xFFFFEBEE),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -632,7 +671,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                       onPressed: _handleLogout,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFC62828),
-                        side: const BorderSide(color: Color(0xFFC62828), width: 1.5),
+                        side: const BorderSide(
+                            color: Color(0xFFC62828), width: 1.5),
                         backgroundColor: const Color(0xFFFFEBEE),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -645,7 +685,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                           SizedBox(width: _iconTextGap),
                           Text(
                             'LOG OUT',
-                            style: TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: 15),
+                            style: TextStyle(
+                                fontFamily: 'Gilroy-SemiBold', fontSize: 15),
                           ),
                         ],
                       ),
