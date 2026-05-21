@@ -439,7 +439,9 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       );
     }
 
-    final isNarrow = MediaQuery.of(context).size.width < 360;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isNarrow = screenWidth < 360;
+    final isWide = screenWidth >= 400;
 
     if (status == AttendanceStatus.done) {
       return _buildDisabledAttendanceButton(
@@ -448,10 +450,16 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       );
     }
     if (!hasRegions) {
-      return _buildDisabledAttendanceButton('NO REGIONS', Symbols.timer_off);
+      return _buildDisabledAttendanceButton(
+        isWide ? 'NO REGIONS FOUND' : 'NO REGIONS',
+        Symbols.timer_off,
+      );
     }
     if (status == AttendanceStatus.locked) {
-      return _buildDisabledAttendanceButton('WAIT FOR 5 MINS', Symbols.timer_5);
+      return _buildDisabledAttendanceButton(
+        isWide ? 'WAIT FOR 5 MINUTES' : 'WAIT FOR 5 MINS',
+        Symbols.timer_5,
+      );
     }
 
     String label;
