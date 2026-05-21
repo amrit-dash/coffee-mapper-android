@@ -439,8 +439,13 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       );
     }
 
+    final isNarrow = MediaQuery.of(context).size.width < 360;
+
     if (status == AttendanceStatus.done) {
-      return _buildDisabledAttendanceButton('ATTENDANCE MARKED', Symbols.check_circle);
+      return _buildDisabledAttendanceButton(
+        isNarrow ? 'MARKED' : 'ATTENDANCE MARKED',
+        Symbols.check_circle,
+      );
     }
     if (!hasRegions) {
       return _buildDisabledAttendanceButton('NO REGIONS', Symbols.timer_off);
