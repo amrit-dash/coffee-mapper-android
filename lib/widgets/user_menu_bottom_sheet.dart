@@ -306,8 +306,9 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
   // ── Attendance button ─────────────────────────────────────────────────────
 
   static const double _btnHeight = 58;
-  static const double _iconSize = 26;
-  static const double _fontSize = 15;
+  static const double _iconSize = 30;
+  static const double _fontSize = 17;
+  static const double _iconTextGap = 18;
 
   Widget _buildDisabledAttendanceButton(String label, IconData iconData) {
     final radius = BorderRadius.circular(14);
@@ -325,16 +326,13 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 30,
-                child: Icon(
-                  iconData,
-                  size: _iconSize,
-                  weight: 600,
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
+              Icon(
+                iconData,
+                size: _iconSize,
+                weight: 600,
+                color: Theme.of(context).colorScheme.secondary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _iconTextGap),
               Text(
                 label,
                 style: TextStyle(
@@ -440,16 +438,22 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           style: FilledButton.styleFrom(
             backgroundColor: Theme.of(context).colorScheme.primary,
             foregroundColor: Colors.white,
+            side: BorderSide(
+              color: Theme.of(context).colorScheme.secondary,
+              width: 1.5,
+            ),
             shape: RoundedRectangleBorder(borderRadius: radius),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                width: 30,
-                child: Icon(iconData, size: _iconSize, weight: 600),
+              Icon(
+                iconData,
+                size: _iconSize,
+                weight: 600,
+                color: Colors.white,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _iconTextGap),
               Text(
                 label,
                 style: const TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: _fontSize),
@@ -531,6 +535,7 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           ),
           const SizedBox(height: 20),
 
+          if (isUser)
           // Allocated Panchayat row
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -541,6 +546,7 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
             ],
           ),
           const SizedBox(height: 30),
+          
 
           // Action buttons
           Row(
@@ -572,13 +578,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                 Expanded(
                   child: SizedBox(
                     height: 58,
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: _handleLogout,
-                      icon: const Icon(Icons.logout, size: 22),
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: 15),
-                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFC62828),
                         side: const BorderSide(color: Color(0xFFC62828), width: 1.5),
@@ -586,6 +587,17 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.logout, size: 26),
+                          SizedBox(width: _iconTextGap),
+                          Text(
+                            'LOG OUT',
+                            style: TextStyle(fontFamily: 'Gilroy-SemiBold', fontSize: 15),
+                          ),
+                        ],
                       ),
                     ),
                   ),

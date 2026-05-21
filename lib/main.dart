@@ -109,18 +109,12 @@ class FirebaseInitializer {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase services first
-  await FirebaseInitializer.ensureInitialized();
-
-  // Initialize Logger after Firebase
+  // Logger is safe to init before Firebase — it no-ops Crashlytics calls
+  // until Firebase.apps is non-empty.
   AppLogger.init();
 
-  // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
-
-  // Configure system UI for edge-to-edge display
+  // System UI setup — fast platform channel calls; keep before runApp to
+  // avoid a first-frame style flicker.
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -130,13 +124,16 @@ Future<void> main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-
-  // Enable edge-to-edge display
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.edgeToEdge,
     overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
   );
 
+  // Firebase initialization is deferred to SplashScreen so the first frame
+  // renders immediately; the splash holds for a minimum of 2s while init runs.
   runApp(
     MultiProvider(
       providers: [

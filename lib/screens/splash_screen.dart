@@ -1,3 +1,4 @@
+import 'package:coffee_mapper/main.dart' show FirebaseInitializer;
 import 'package:coffee_mapper/screens/auth_wrapper.dart';
 //import 'package:coffee_mapper/widgets/svg_animator.dart';
 
@@ -56,16 +57,20 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate to the main screen after a delay
-    Future.delayed(const Duration(seconds: 4), () {
-      final navigatorContext = context;
-      if (!mounted) return;
-      if (navigatorContext.mounted) {
-        Navigator.pushReplacement(
-          navigatorContext,
-          MaterialPageRoute(builder: (context) => const AuthWrapper()),
-        );
-      }
-    });
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    // Run Firebase init in parallel with a minimum splash display window
+    // so the splash never flashes by, but we also never block past init.
+    await Future.wait([
+      FirebaseInitializer.ensureInitialized(),
+      Future.delayed(const Duration(seconds: 2)),
+    ]);
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthWrapper()),
+    );
   }
 }
