@@ -84,6 +84,14 @@ class UserProvider with ChangeNotifier {
     );
   }
 
+  Future<void> updateName(String uid, String newName) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .update({'name': newName.trim()});
+    // The existing snapshot listener auto-updates _name and calls notifyListeners()
+  }
+
   @override
   void dispose() {
     _userSubscription?.cancel();

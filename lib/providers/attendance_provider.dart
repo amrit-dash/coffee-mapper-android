@@ -28,6 +28,11 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
   bool _hasSavedRegions = false;
   bool _hasNursery = false;
 
+  // In-memory cache of polygon data — populated by the region streams so
+  // verifyGeofence() can run the math locally without a network round-trip.
+  List<Map<String, dynamic>> _cachedSavedRegions = [];
+  List<Map<String, dynamic>> _cachedNurseryRegions = [];
+
   AttendanceProvider() {
     WidgetsBinding.instance.addObserver(this);
     _scheduleMidnightTimer();
@@ -71,10 +76,12 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
   void updatePanchayat(String? panchayat) {
     if (_panchayat == panchayat) return;
     _panchayat = panchayat;
-    
+
     _regionsSubscription?.cancel();
     _nurserySubscription?.cancel();
-    
+    _cachedSavedRegions = [];
+    _cachedNurseryRegions = [];
+
     if (_panchayat == null || _panchayat!.isEmpty || _panchayat == 'NA') {
       _hasRegions = false;
       _hasSavedRegions = false;
@@ -88,16 +95,22 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     _hasRegions = false;
     notifyListeners();
 
+    // Fetch all region documents (not just .limit(1)) so we can cache polygon
+    // data for offline-capable geofence verification in verifyGeofence().
     _regionsSubscription = FirebaseFirestore.instance
         .collection('savedRegions')
         .where('panchayat', isEqualTo: _panchayat)
-        .limit(1)
         .snapshots()
         .listen((snapshot) {
       _hasSavedRegions = snapshot.docs.isNotEmpty;
+      _cachedSavedRegions = snapshot.docs
+          .where((doc) => doc.data()['polygonPoints'] is List)
+          .map((doc) => {'id': doc.id, 'polygonPoints': doc.data()['polygonPoints'] as List})
+          .toList();
       _evaluateHasRegions();
     }, onError: (e) {
-      // In case of offline errors, default to true to allow checks
+      // Keep existing behaviour on error: assume regions exist so the user
+      // can still attempt a check-in (verifyGeofence will catch mismatches).
       _hasRegions = true;
       notifyListeners();
     });
@@ -105,10 +118,13 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     _nurserySubscription = FirebaseFirestore.instance
         .collection('coffeeNursery')
         .where('panchayat', isEqualTo: _panchayat)
-        .limit(1)
         .snapshots()
         .listen((snapshot) {
       _hasNursery = snapshot.docs.isNotEmpty;
+      _cachedNurseryRegions = snapshot.docs
+          .where((doc) => doc.data()['polygonPoints'] is List)
+          .map((doc) => {'id': doc.id, 'polygonPoints': doc.data()['polygonPoints'] as List})
+          .toList();
       _evaluateHasRegions();
     }, onError: (e) {
       _hasRegions = true;
@@ -135,6 +151,8 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     _checkInTime = null;
     _checkOutTime = null;
     _isLoading = false;
+    _cachedSavedRegions = [];
+    _cachedNurseryRegions = [];
     notifyListeners();
   }
 
@@ -234,37 +252,58 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
       return null;
     }
     final userLatLng = mp.LatLng(userLocationData.latitude!, userLocationData.longitude!);
-    
-    // 1. Query savedRegions
-    final regionsQuery = await FirebaseFirestore.instance
-        .collection('savedRegions')
-        .where('panchayat', isEqualTo: allocatedPanchayat)
-        .get();
 
-    for (var doc in regionsQuery.docs) {
-      final data = doc.data();
-      if (data['polygonPoints'] is List) {
-        final List<dynamic> pointsStr = data['polygonPoints'];
-        final polygon = GeofenceHelper.getPolygonPoints(pointsStr);
+    // Use in-memory cache when available (populated by real-time streams in
+    // updatePanchayat). The geofence math is purely local, so this path works
+    // fully offline once the streams have fired at least once after login.
+    // Falls back to a direct Firestore .get() only when the cache is still
+    // empty (e.g. the very first check-in attempt immediately after login,
+    // before the stream callbacks have had time to run).
+
+    // 1. Check savedRegions
+    if (_cachedSavedRegions.isNotEmpty) {
+      for (final region in _cachedSavedRegions) {
+        final polygon = GeofenceHelper.getPolygonPoints(region['polygonPoints'] as List);
         if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
-          return {'id': doc.id, 'type': 'savedRegion'};
+          return {'id': region['id'] as String, 'type': 'savedRegion'};
+        }
+      }
+    } else {
+      final regionsQuery = await FirebaseFirestore.instance
+          .collection('savedRegions')
+          .where('panchayat', isEqualTo: allocatedPanchayat)
+          .get();
+      for (final doc in regionsQuery.docs) {
+        final data = doc.data();
+        if (data['polygonPoints'] is List) {
+          final polygon = GeofenceHelper.getPolygonPoints(data['polygonPoints'] as List);
+          if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
+            return {'id': doc.id, 'type': 'savedRegion'};
+          }
         }
       }
     }
 
-    // 2. Query coffeeNursery
-    final nurseryQuery = await FirebaseFirestore.instance
-        .collection('coffeeNursery')
-        .where('panchayat', isEqualTo: allocatedPanchayat)
-        .get();
-
-    for (var doc in nurseryQuery.docs) {
-      final data = doc.data();
-      if (data['polygonPoints'] is List) {
-        final List<dynamic> pointsStr = data['polygonPoints'];
-        final polygon = GeofenceHelper.getPolygonPoints(pointsStr);
+    // 2. Check coffeeNursery
+    if (_cachedNurseryRegions.isNotEmpty) {
+      for (final region in _cachedNurseryRegions) {
+        final polygon = GeofenceHelper.getPolygonPoints(region['polygonPoints'] as List);
         if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
-          return {'id': doc.id, 'type': 'coffeeNursery'};
+          return {'id': region['id'] as String, 'type': 'coffeeNursery'};
+        }
+      }
+    } else {
+      final nurseryQuery = await FirebaseFirestore.instance
+          .collection('coffeeNursery')
+          .where('panchayat', isEqualTo: allocatedPanchayat)
+          .get();
+      for (final doc in nurseryQuery.docs) {
+        final data = doc.data();
+        if (data['polygonPoints'] is List) {
+          final polygon = GeofenceHelper.getPolygonPoints(data['polygonPoints'] as List);
+          if (GeofenceHelper.isWithinGeofence(userLatLng, polygon)) {
+            return {'id': doc.id, 'type': 'coffeeNursery'};
+          }
         }
       }
     }

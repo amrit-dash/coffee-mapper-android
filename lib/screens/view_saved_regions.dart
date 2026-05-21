@@ -24,7 +24,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
   // ignore: undefined_class
   StreamSubscription<QuerySnapshot>? _regionsSubscription;
   List<DocumentSnapshot> _regions = [];
-  bool _maybeNoItems = false;
   bool _isLoading = true;
 
   // Helper function to format the timestamp with different style options
@@ -118,9 +117,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
     _regionsSubscription = query.snapshots().listen((snapshot) {
       if (!mounted) return;
       setState(() {
-        if(snapshot.docs.isEmpty) {
-          _maybeNoItems = true;
-        }
         _regions = snapshot.docs;
         _isLoading = false;
       });
@@ -128,7 +124,6 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _maybeNoItems = true;
       });
       _logger.severe('Error fetching regions: $error');
     });
@@ -164,40 +159,19 @@ class _ViewSavedRegionsScreenState extends State<ViewSavedRegionsScreen> {
             Expanded(
               child: (_regions.isEmpty)
                   ? Center(
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if(_isLoading)
-                            CircularProgressIndicator(
-                            color: Theme.of(context).colorScheme.secondary,
+                      child: _isLoading
+                          ? CircularProgressIndicator(
+                              color: Theme.of(context).colorScheme.secondary,
+                            )
+                          : Text(
+                              'No saved regions found.',
+                              style: TextStyle(
+                                fontFamily: 'Gilroy-Medium',
+                                fontSize: 13.5,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
                             ),
-                          FutureBuilder(
-                            future: Future.delayed(Duration(seconds: 4), () {
-                              setState(() {
-                                if (_maybeNoItems) {
-                                  _isLoading = false;
-                                }
-                              });
-                            }),
-                            builder: (context, snapshot) {
-                              if (_maybeNoItems && !_isLoading) {
-                                return Text(
-                                  "No saved regions found.",
-                                  style: TextStyle(
-                                    fontFamily: 'Gilroy-Medium',
-                                    fontSize: 13.5,
-                                    color: Theme.of(context).colorScheme.secondary,
-                                  ),
-                                );
-                              } else {
-                                return SizedBox();
-                              }
-                            },
-                          )
-                        ],
-                      ),
-                  )
+                    )
                   : Padding(
                       padding: const EdgeInsets.fromLTRB(25, 0, 25, 0),
                       child: ListView.builder(

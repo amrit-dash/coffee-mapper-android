@@ -24,7 +24,6 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
   final _logger = AppLogger.getLogger('ViewCoffeeNurseries');
   StreamSubscription<QuerySnapshot>? _nurseriesSubscription;
   List<DocumentSnapshot> _nurseries = [];
-  bool _maybeNoItems = false;
   bool _isLoading = true;
 
   // Helper function to format the timestamp with different style options
@@ -115,9 +114,6 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
     _nurseriesSubscription = query.snapshots().listen((snapshot) {
       if (!mounted) return;
       setState(() {
-        if (snapshot.docs.isEmpty) {
-          _maybeNoItems = true;
-        }
         _nurseries = snapshot.docs;
         _isLoading = false;
       });
@@ -125,7 +121,6 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _maybeNoItems = true;
       });
       _logger.severe('Error fetching nurseries: $error');
     });
@@ -161,40 +156,18 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
             Expanded(
               child: (_nurseries.isEmpty)
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (_isLoading)
-                            CircularProgressIndicator(
+                      child: _isLoading
+                          ? CircularProgressIndicator(
                               color: Theme.of(context).colorScheme.secondary,
+                            )
+                          : Text(
+                              'No saved nurseries found.',
+                              style: TextStyle(
+                                fontFamily: 'Gilroy-Medium',
+                                fontSize: 13.5,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
                             ),
-                          FutureBuilder(
-                            future: Future.delayed(Duration(seconds: 4), () {
-                              setState(() {
-                                if (_maybeNoItems) {
-                                  _isLoading = false;
-                                }
-                              });
-                            }),
-                            builder: (context, snapshot) {
-                              if (_maybeNoItems && !_isLoading) {
-                                return Text(
-                                  "No saved nurseries found.",
-                                  style: TextStyle(
-                                    fontFamily: 'Gilroy-Medium',
-                                    fontSize: 13.5,
-                                    color:
-                                        Theme.of(context).colorScheme.secondary,
-                                  ),
-                                );
-                              } else {
-                                return SizedBox();
-                              }
-                            },
-                          )
-                        ],
-                      ),
                     )
                   : Padding(
                       padding: const EdgeInsets.fromLTRB(25, 0, 25, 0),

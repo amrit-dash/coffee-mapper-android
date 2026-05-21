@@ -59,6 +59,24 @@ class _NurseryFormFieldsState extends State<NurseryFormFields> {
   bool _areFieldsEditable = false;
 
   @override
+  void dispose() {
+    _seedlingsRaisedController.dispose();
+    _seedsQuantityController.dispose();
+    _coffeeVarietyController.dispose();
+    _areaController.dispose();
+    _boundaryController.dispose();
+    _sowingDateController.dispose();
+    _transplantingDateController.dispose();
+    _firstPairLeavesController.dispose();
+    _secondPairLeavesController.dispose();
+    _thirdPairLeavesController.dispose();
+    _fourthPairLeavesController.dispose();
+    _fifthPairLeavesController.dispose();
+    _sixthPairLeavesController.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     _initializeFormFields();

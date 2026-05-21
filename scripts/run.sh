@@ -21,7 +21,7 @@ check_device() {
     if [[ $DEVICES == *"No devices available"* ]]; then
         handle_error "No devices connected. Please connect a device or start an emulator."
     fi
-    
+
     echo "Available devices:"
     echo "$DEVICES"
     echo ""

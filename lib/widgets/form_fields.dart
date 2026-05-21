@@ -96,6 +96,20 @@ class _FormFieldsState extends State<FormFields> {
   final _areaController = TextEditingController();
   final _boundaryController = TextEditingController();
 
+  @override
+  void dispose() {
+    _plotNumberController.dispose();
+    _khataNumberController.dispose();
+    _survivalPercentController.dispose();
+    _beneficiariesCountController.dispose();
+    _treeHeightController.dispose();
+    _yeildValueController.dispose();
+    _areaController.dispose();
+    _boundaryController.dispose();
+    _focusNodeSideLabelField.dispose();
+    super.dispose();
+  }
+
   String _formatDate(Timestamp timestamp) {
     try {
       final dateTime = timestamp.toDate();

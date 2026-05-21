@@ -1,14 +1,12 @@
 // header.dart
 
-import 'package:coffee_mapper/screens/login_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/providers/attendance_provider.dart';
+import 'package:coffee_mapper/providers/user_provider.dart';
 import 'package:coffee_mapper/utils/logger.dart';
-import 'package:coffee_mapper/widgets/attendance_button.dart';
+import 'package:coffee_mapper/widgets/user_menu_bottom_sheet.dart';
 
 class Header extends StatefulWidget {
   const Header({super.key});
@@ -24,9 +22,24 @@ class _HeaderState extends State<Header> {
   int doubleTapCounter = 0;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = context.watch<UserProvider>();
+    final attendanceProvider = context.read<AttendanceProvider>();
+    if (userProvider.role == 'USER') {
+      final allocatedPanchayat = userProvider.allocatedPanchayat;
+      if (attendanceProvider.panchayat != allocatedPanchayat) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) attendanceProvider.updatePanchayat(allocatedPanchayat);
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(25, 10, 10, 0),
+      padding: const EdgeInsets.fromLTRB(25, 10, 18, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -109,35 +122,23 @@ class _HeaderState extends State<Header> {
               ],
             ),
           ),
-          // Actions Row
-          Row(
-            children: [
-              const AttendanceButton(),
-              // Logout button
-              IconButton(
-                icon: const Icon(Icons.logout),
-                style: IconButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
+          // Menu button
+          IconButton(
+            icon: const Icon(Icons.more_horiz, size: 34),
+            style: IconButton.styleFrom(
+              foregroundColor: Theme.of(context).highlightColor,
+            ),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: false,
+                backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-            onPressed: () async {
-              final providerContext = context;
-              final navigatorContext = context;
-              await FirebaseAuth.instance.signOut();
-              
-              if (providerContext.mounted) {
-                providerContext.read<UserProvider>().reset();
-                providerContext.read<AttendanceProvider>().reset();
-              }
-              
-              if (navigatorContext.mounted) {
-                Navigator.pushReplacement(
-                    navigatorContext,
-                    MaterialPageRoute(
-                        builder: (context) => const LoginScreen()));
-              }
+                builder: (_) => const UserMenuBottomSheet(),
+              );
             },
-          ),
-            ],
           ),
         ],
       ),
