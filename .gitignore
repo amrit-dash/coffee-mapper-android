@@ -175,3 +175,5 @@ app_config.dart
 
 # Ignore Gradle build output directory
 build
+
+plans/
