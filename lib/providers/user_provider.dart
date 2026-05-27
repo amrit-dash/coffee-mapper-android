@@ -10,7 +10,7 @@ class UserProvider with ChangeNotifier {
   String? _lastCheckedUid;
   String? _name;
   String? _role;
-  String? _allocatedPanchayat;
+  List<String> _allocatedPanchayats = const [];
 
   final _logger = AppLogger.getLogger('UserProvider');
 
@@ -18,7 +18,7 @@ class UserProvider with ChangeNotifier {
   bool get isSuperAdmin => _isSuperAdmin;
   String? get name => _name;
   String? get role => _role;
-  String? get allocatedPanchayat => _allocatedPanchayat;
+  List<String> get allocatedPanchayats => _allocatedPanchayats;
 
   StreamSubscription<DocumentSnapshot>? _userSubscription;
 
@@ -55,8 +55,8 @@ class UserProvider with ChangeNotifier {
           if (data != null) {
             _role = data['role'];
             _name = data['name'];
-            _allocatedPanchayat = data['allocatedPanchayat'];
-            
+            _allocatedPanchayats = _parseAllocatedPanchayats(data['allocatedPanchayats']);
+
             _isSuperAdmin = _role == "DEV";
             _isAdmin = _role == "ADMIN" || _role == "DEV";
           }
@@ -64,7 +64,7 @@ class UserProvider with ChangeNotifier {
           // If no doc exists, default to non-admin
           _role = "USER";
           _name = null;
-          _allocatedPanchayat = null;
+          _allocatedPanchayats = const [];
           _isAdmin = false;
           _isSuperAdmin = false;
         }
@@ -76,12 +76,19 @@ class UserProvider with ChangeNotifier {
         _logger.warning('User status listen failed: $e');
         _role = "USER";
         _name = null;
-        _allocatedPanchayat = null;
+        _allocatedPanchayats = const [];
         _isAdmin = false;
         _isSuperAdmin = false;
         notifyListeners();
       },
     );
+  }
+
+  List<String> _parseAllocatedPanchayats(dynamic raw) {
+    if (raw is List) {
+      return raw.whereType<String>().where((s) => s.isNotEmpty).toList(growable: false);
+    }
+    return const [];
   }
 
   Future<void> updateName(String uid, String newName) async {
@@ -103,7 +110,7 @@ class UserProvider with ChangeNotifier {
     _isSuperAdmin = false;
     _name = null;
     _role = null;
-    _allocatedPanchayat = null;
+    _allocatedPanchayats = const [];
     _lastCheckedUid = null;
     _userSubscription?.cancel();
     _userSubscription = null;

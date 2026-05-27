@@ -18,7 +18,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
   DateTime? _checkOutTime;
   StreamSubscription<DocumentSnapshot>? _attendanceSubscription;
   String? _uid;
-  String? _panchayat;
+  List<String> _panchayats = const [];
   Timer? _lockTimer;
   Timer? _midnightTimer;
   String? _currentDateStr;
@@ -63,7 +63,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasRegions => _hasRegions;
-  String? get panchayat => _panchayat;
+  List<String> get panchayats => _panchayats;
   DateTime? get checkInTime => _checkInTime;
   DateTime? get checkOutTime => _checkOutTime;
 
@@ -73,16 +73,16 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     _listenToTodayAttendance();
   }
 
-  void updatePanchayat(String? panchayat) {
-    if (_panchayat == panchayat) return;
-    _panchayat = panchayat;
+  void updatePanchayats(List<String> panchayats) {
+    if (_listEquals(_panchayats, panchayats)) return;
+    _panchayats = List<String>.unmodifiable(panchayats);
 
     _regionsSubscription?.cancel();
     _nurserySubscription?.cancel();
     _cachedSavedRegions = [];
     _cachedNurseryRegions = [];
 
-    if (_panchayat == null || _panchayat!.isEmpty || _panchayat == 'NA') {
+    if (_panchayats.isEmpty) {
       _hasRegions = false;
       _hasSavedRegions = false;
       _hasNursery = false;
@@ -99,7 +99,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     // data for offline-capable geofence verification in verifyGeofence().
     _regionsSubscription = FirebaseFirestore.instance
         .collection('savedRegions')
-        .where('panchayat', isEqualTo: _panchayat)
+        .where('panchayat', whereIn: _panchayats)
         .snapshots()
         .listen((snapshot) {
       _hasSavedRegions = snapshot.docs.isNotEmpty;
@@ -117,7 +117,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
 
     _nurserySubscription = FirebaseFirestore.instance
         .collection('coffeeNursery')
-        .where('panchayat', isEqualTo: _panchayat)
+        .where('panchayat', whereIn: _panchayats)
         .snapshots()
         .listen((snapshot) {
       _hasNursery = snapshot.docs.isNotEmpty;
@@ -132,6 +132,15 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     });
   }
 
+  bool _listEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   void _evaluateHasRegions() {
     final newValue = _hasSavedRegions || _hasNursery;
     if (_hasRegions != newValue) {
@@ -142,7 +151,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
 
   void reset() {
     _uid = null;
-    _panchayat = null;
+    _panchayats = const [];
     _attendanceSubscription?.cancel();
     _regionsSubscription?.cancel();
     _nurserySubscription?.cancel();
@@ -247,14 +256,16 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<Map<String, String>?> verifyGeofence(String allocatedPanchayat, LocationData userLocationData) async {
+  Future<Map<String, String>?> verifyGeofence(LocationData userLocationData) async {
     if (userLocationData.latitude == null || userLocationData.longitude == null) {
       return null;
     }
+    if (_panchayats.isEmpty) return null;
+
     final userLatLng = mp.LatLng(userLocationData.latitude!, userLocationData.longitude!);
 
     // Use in-memory cache when available (populated by real-time streams in
-    // updatePanchayat). The geofence math is purely local, so this path works
+    // updatePanchayats). The geofence math is purely local, so this path works
     // fully offline once the streams have fired at least once after login.
     // Falls back to a direct Firestore .get() only when the cache is still
     // empty (e.g. the very first check-in attempt immediately after login,
@@ -271,7 +282,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     } else {
       final regionsQuery = await FirebaseFirestore.instance
           .collection('savedRegions')
-          .where('panchayat', isEqualTo: allocatedPanchayat)
+          .where('panchayat', whereIn: _panchayats)
           .get();
       for (final doc in regionsQuery.docs) {
         final data = doc.data();
@@ -295,7 +306,7 @@ class AttendanceProvider with ChangeNotifier, WidgetsBindingObserver {
     } else {
       final nurseryQuery = await FirebaseFirestore.instance
           .collection('coffeeNursery')
-          .where('panchayat', isEqualTo: allocatedPanchayat)
+          .where('panchayat', whereIn: _panchayats)
           .get();
       for (final doc in nurseryQuery.docs) {
         final data = doc.data();

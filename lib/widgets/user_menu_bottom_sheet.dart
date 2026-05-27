@@ -146,7 +146,6 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
 
   Future<void> _handleAttendance(
     AttendanceProvider attendanceProvider,
-    String allocatedPanchayat,
     bool isCheckIn,
   ) async {
     if (attendanceProvider.isLoading) return;
@@ -232,8 +231,8 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
         return;
       }
 
-      final regionInfo = await attendanceProvider.verifyGeofence(
-          allocatedPanchayat, locationData);
+      final regionInfo =
+          await attendanceProvider.verifyGeofence(locationData);
       if (regionInfo == null) {
         notifyError(
             'Out of Range', 'Not within range of any allocated region.');
@@ -344,6 +343,26 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
   static const double _fontSize = 15;
   static const double _iconTextGap = 18;
 
+  Widget _buildPanchayatChip(String panchayat) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: primary.withAlpha(28),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: primary.withAlpha(140), width: 1),
+      ),
+      child: Text(
+        panchayat,
+        style: TextStyle(
+          fontFamily: 'Gilroy-SemiBold',
+          fontSize: 14,
+          color: Theme.of(context).highlightColor,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDisabledAttendanceButton(String label, IconData iconData) {
     final radius = BorderRadius.circular(14);
     final disabledBg = Theme.of(context).colorScheme.primary.withAlpha(90);
@@ -390,13 +409,17 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
 
   Widget _buildAttendanceButton(
     AttendanceProvider attendanceProvider,
-    String? allocatedPanchayat,
+    List<String> allocatedPanchayats,
   ) {
     final isLoading = attendanceProvider.isLoading;
     final status = attendanceProvider.status;
     final hasRegions = attendanceProvider.hasRegions;
     final radius = BorderRadius.circular(14);
     final disabledBg = Theme.of(context).colorScheme.primary.withAlpha(90);
+    // 'ALL' is the admin sentinel and is invalid for USER-role attendance.
+    final effectivePanchayats =
+        allocatedPanchayats.where((p) => p != 'ALL').toList(growable: false);
+    final hasAllocation = effectivePanchayats.isNotEmpty;
 
     if (status == AttendanceStatus.initializing) {
       return Expanded(
@@ -467,6 +490,13 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
       );
     }
 
+    if (!hasAllocation) {
+      return _buildDisabledAttendanceButton(
+        isWide ? 'PANCHAYAT NOT ALLOCATED' : 'NOT ALLOCATED',
+        Symbols.location_off,
+      );
+    }
+
     String label;
     IconData iconData;
     VoidCallback onPressed;
@@ -474,16 +504,11 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     if (status == AttendanceStatus.checkOut) {
       label = 'CHECK OUT';
       iconData = Symbols.timer_pause;
-      onPressed = () => _handleAttendance(
-          attendanceProvider, allocatedPanchayat ?? '', false);
+      onPressed = () => _handleAttendance(attendanceProvider, false);
     } else {
       iconData = Symbols.timer_play;
-      final panchayat = allocatedPanchayat ?? '';
-      if (panchayat.isEmpty) {
-        return _buildDisabledAttendanceButton('CHECK IN', Symbols.timer_play);
-      }
       label = 'CHECK IN';
-      onPressed = () => _handleAttendance(attendanceProvider, panchayat, true);
+      onPressed = () => _handleAttendance(attendanceProvider, true);
     }
 
     return Expanded(
@@ -532,7 +557,7 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
     final attendanceProvider = context.watch<AttendanceProvider>();
 
     final name = userProvider.name ?? '';
-    final panchayat = userProvider.allocatedPanchayat ?? '—';
+    final allocatedPanchayats = userProvider.allocatedPanchayats;
     final isUser = userProvider.role == 'USER';
 
     final nameLabelStyle = TextStyle(
@@ -613,13 +638,27 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
           const SizedBox(height: 20),
 
           if (isUser) ...[
-            // Allocated Panchayat row
+            // Allocated Panchayat(s) row
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Allocated Panchayat', style: panchayatLabelStyle),
-                const SizedBox(height: 4),
-                Text(panchayat, style: panchayatValueStyle),
+                Text(
+                  allocatedPanchayats.length == 1
+                      ? 'Allocated Panchayat'
+                      : 'Allocated Panchayats',
+                  style: panchayatLabelStyle,
+                ),
+                const SizedBox(height: 8),
+                if (allocatedPanchayats.isEmpty)
+                  Text('—', style: panchayatValueStyle)
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: allocatedPanchayats
+                        .map((p) => _buildPanchayatChip(p))
+                        .toList(growable: false),
+                  ),
               ],
             ),
           ] else
@@ -642,7 +681,7 @@ class _UserMenuBottomSheetState extends State<UserMenuBottomSheet> {
               if (isUser) ...[
                 _buildAttendanceButton(
                   attendanceProvider,
-                  userProvider.allocatedPanchayat,
+                  allocatedPanchayats,
                 ),
                 const SizedBox(width: 12),
                 SizedBox(

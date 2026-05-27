@@ -65,7 +65,7 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
   }
 
   bool? _currentIsAdmin;
-  String? _currentPanchayat;
+  List<String> _currentPanchayats = const [];
 
   @override
   void initState() {
@@ -76,13 +76,23 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final userProvider = context.watch<UserProvider>();
-    
-    if (_currentIsAdmin != userProvider.isAdmin || 
-        _currentPanchayat != userProvider.allocatedPanchayat) {
+
+    final nextPanchayats = userProvider.allocatedPanchayats;
+    if (_currentIsAdmin != userProvider.isAdmin ||
+        !_listEquals(_currentPanchayats, nextPanchayats)) {
       _currentIsAdmin = userProvider.isAdmin;
-      _currentPanchayat = userProvider.allocatedPanchayat;
+      _currentPanchayats = nextPanchayats;
       _setupNurseriesSubscription();
     }
+  }
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void _setupNurseriesSubscription() {
@@ -92,7 +102,7 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
     // Get current user and admin status
     final user = FirebaseAuth.instance.currentUser;
     final isAdmin = _currentIsAdmin ?? false;
-    final allocatedPanchayat = _currentPanchayat;
+    final allocatedPanchayats = _currentPanchayats;
 
     // Build the base query
     var query = FirebaseFirestore.instance
@@ -101,9 +111,11 @@ class _ViewCoffeeNurseriesScreenState extends State<ViewCoffeeNurseriesScreen> {
 
     // Add user filter only if not admin
     if (!isAdmin && user != null) {
-      if (allocatedPanchayat != null && allocatedPanchayat.isNotEmpty && allocatedPanchayat != 'ALL') {
-        query = query.where('panchayat', isEqualTo: allocatedPanchayat);
-      } else if (allocatedPanchayat == null || allocatedPanchayat.isEmpty) {
+      if (allocatedPanchayats.contains('ALL')) {
+        // Unrestricted access — no panchayat filter
+      } else if (allocatedPanchayats.isNotEmpty) {
+        query = query.where('panchayat', whereIn: allocatedPanchayats);
+      } else {
         query = query.where('savedBy', isEqualTo: user.email);
       }
     }

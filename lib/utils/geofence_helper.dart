@@ -1,7 +1,10 @@
 import 'package:maps_toolkit/maps_toolkit.dart';
 
 class GeofenceHelper {
-  static const double checkInRadiusMeters = 50.0;
+  // Users can mark attendance from anywhere within this distance of an
+  // allocated panchayat's saved polygon (inside the polygon, or up to 2km
+  // beyond its edges).
+  static const double checkInRadiusMeters = 2000.0;
 
   /// Parse a string like "18.8194177,82.6839473" into LatLng
   static LatLng? parseLatLng(String pointStr) {
@@ -32,12 +35,13 @@ class GeofenceHelper {
     return polygon;
   }
 
-  /// Check if a user's location is inside or within 50m of a given polygon
+  /// Check if a user's location is inside, or within [checkInRadiusMeters] of, a given polygon.
   static bool isWithinGeofence(LatLng userLocation, List<LatLng> polygon) {
     if (polygon.isEmpty) return false;
     if (polygon.length == 1) {
       // If only one point, check distance
-      final distance = SphericalUtil.computeDistanceBetween(userLocation, polygon.first);
+      final distance =
+          SphericalUtil.computeDistanceBetween(userLocation, polygon.first);
       return distance <= checkInRadiusMeters;
     }
 
@@ -47,7 +51,8 @@ class GeofenceHelper {
     }
 
     // Check if within 50m of the boundary edge
-    if (PolygonUtil.isLocationOnEdge(userLocation, polygon, true, tolerance: checkInRadiusMeters)) {
+    if (PolygonUtil.isLocationOnEdge(userLocation, polygon, true,
+        tolerance: checkInRadiusMeters)) {
       return true;
     }
 

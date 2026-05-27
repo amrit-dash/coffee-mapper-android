@@ -27,12 +27,15 @@ class _HeaderState extends State<Header> {
     final userProvider = context.watch<UserProvider>();
     final attendanceProvider = context.read<AttendanceProvider>();
     if (userProvider.role == 'USER') {
-      final allocatedPanchayat = userProvider.allocatedPanchayat;
-      if (attendanceProvider.panchayat != allocatedPanchayat) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) attendanceProvider.updatePanchayat(allocatedPanchayat);
-        });
-      }
+      // 'ALL' is the admin sentinel and has no geofence meaning. If a USER
+      // somehow has it (data inconsistency), strip it so attendance falls
+      // through to the "no allocation" path.
+      final allocatedPanchayats = userProvider.allocatedPanchayats
+          .where((p) => p != 'ALL')
+          .toList(growable: false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) attendanceProvider.updatePanchayats(allocatedPanchayats);
+      });
     }
   }
 
