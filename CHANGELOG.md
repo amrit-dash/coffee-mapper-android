@@ -5,6 +5,20 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0+50] - 2026-06-29
+
+### Fixed
+- `scripts/build.sh` now uses the pubspec build number (`+50`) for `versionCode` instead of stripping dots from the version name (which produced `500` for `5.0.0`).
+- Shared pre-warmed FlutterEngine between `CoffeeMapperApplication` and `MainActivity` to prevent double engine initialization.
+- Removed stale `com.example.app.LocationService` manifest entry with no matching implementation.
+- Added Android 13+ permissions: `POST_NOTIFICATIONS`, `READ_MEDIA_IMAGES`, and `READ_MEDIA_VIDEO`.
+- Scoped `READ_EXTERNAL_STORAGE` to API 32 and below for legacy gallery access.
+- Request notification permission at runtime before starting background location tracking.
+- Ensured CI release builds pass `--dart-define=ENVIRONMENT=production`.
+
+### Changed
+- Production Maps API key in `scripts/build.sh` can be overridden via `PROD_MAPS_API_KEY` environment variable.
+
 ## [3.0.2] - 2026-02-27
 
 ### Added
