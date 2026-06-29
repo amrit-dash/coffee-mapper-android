@@ -226,11 +226,11 @@ jobs:
         
       - name: Build Release APK
         run: |
-          flutter build apk --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          flutter build apk --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
           
       - name: Build App Bundle (AAB)
         run: |
-          flutter build appbundle --release --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          flutter build appbundle --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
           
       - name: Setup Android NDK
         run: |
