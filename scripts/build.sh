@@ -5,7 +5,8 @@ usage() {
     echo "Usage: $0 [dev|prod] [version]"
     echo "  dev  - Build debug APK with development configuration"
     echo "  prod - Build release APK with production configuration"
-    echo "  version - Version number (e.g., 1.0.0)"
+    echo "  version - Version as X.Y.Z or X.Y.Z+N (e.g., 5.0.0 or 5.0.0+50)"
+    echo "            If +N is omitted, build number is read from pubspec.yaml"
     exit 1
 }
 
@@ -19,16 +20,43 @@ handle_error() {
     exit 1
 }
 
+# Function to read the current version line from pubspec.yaml
+read_pubspec_version() {
+    grep "^version:" pubspec.yaml | cut -d' ' -f2
+}
+
+# Parse X.Y.Z or X.Y.Z+N into VERSION_NAME and BUILD_NUMBER
+parse_version_parts() {
+    local input=$1
+
+    if [[ "$input" == *"+"* ]]; then
+        VERSION_NAME="${input%+*}"
+        BUILD_NUMBER="${input#*+}"
+        return
+    fi
+
+    VERSION_NAME="$input"
+
+    local pubspec_version
+    pubspec_version=$(read_pubspec_version)
+    if [[ "$pubspec_version" == *"+"* ]]; then
+        BUILD_NUMBER="${pubspec_version#*+}"
+    else
+        handle_error "Build number required. Use X.Y.Z+N or set version in pubspec.yaml as X.Y.Z+N."
+    fi
+}
+
 # Function to update pubspec version
 update_pubspec_version() {
-    local version=$1
+    local version_name=$1
+    local build_number=$2
     # Create backup of original pubspec
     cp pubspec.yaml pubspec.yaml.bak || handle_error "Failed to backup pubspec.yaml"
     
-    # Update version in pubspec.yaml
-    sed -i '' "s/^version: .*/version: $version/" pubspec.yaml || handle_error "Failed to update version in pubspec.yaml"
+    # Update version in pubspec.yaml (Flutter format: name+build)
+    sed -i '' "s/^version: .*/version: ${version_name}+${build_number}/" pubspec.yaml || handle_error "Failed to update version in pubspec.yaml"
     
-    echo "Updated pubspec.yaml version to $version"
+    echo "Updated pubspec.yaml version to ${version_name}+${build_number}"
 }
 
 # Function to restore pubspec
@@ -39,13 +67,6 @@ restore_pubspec() {
     fi
 }
 
-# Function to convert version to build number
-version_to_build_number() {
-    local version=$1
-    # Remove dots and convert to integer
-    echo "${version//./}"
-}
-
 # Check if arguments are provided
 if [ $# -lt 1 ]; then
     usage
@@ -53,8 +74,9 @@ fi
 
 # Set environment based on argument
 ENV=$1
-VERSION=${2:-"1.0.0"}  # Use provided version or default to 1.0.0
-BUILD_NUMBER=$(version_to_build_number $VERSION)
+VERSION_INPUT=${2:-$(read_pubspec_version)}
+parse_version_parts "$VERSION_INPUT"
+VERSION="$VERSION_NAME"
 BUILD_DIR="builds/${ENV}"
 
 # Create builds directory if it doesn't exist
@@ -67,7 +89,7 @@ case $ENV in
         BUILD_TYPE="--debug"
         ENV_FLAG=""
         FIREBASE_CONFIG="google-services-dev.json"
-        MAPS_API_KEY="AIzaSyBGfU3qCOTfqg52zENVopgHNTL0riF_zrg"
+        MAPS_API_KEY="${DEV_MAPS_API_KEY:-AIzaSyBGfU3qCOTfqg52zENVopgHNTL0riF_zrg}"
         ;;
     "prod")
         echo "Building production APK and AAB..."
@@ -75,7 +97,7 @@ case $ENV in
         BUILD_TYPE="--release"
         ENV_FLAG="--dart-define=ENVIRONMENT=production"
         FIREBASE_CONFIG="google-services-prod.json"
-        MAPS_API_KEY="AIzaSyAyye03zRtYOKOHFdtOvo99MnyHxzm6wBg"
+        MAPS_API_KEY="${PROD_MAPS_API_KEY:-AIzaSyAyye03zRtYOKOHFdtOvo99MnyHxzm6wBg}"
         ;;
     *)
         usage
@@ -92,7 +114,7 @@ echo "Cleaning project..."
 flutter clean || handle_error "Failed to clean project"
 
 # Update pubspec version
-update_pubspec_version "$VERSION"
+update_pubspec_version "$VERSION" "$BUILD_NUMBER"
 
 # Copy Firebase configuration
 echo "Copying Firebase configuration..."
