@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class BackgroundLocationService {
   static final BackgroundLocationService _instance = BackgroundLocationService._internal();
@@ -36,6 +37,12 @@ class BackgroundLocationService {
       interval: 500,
       distanceFilter: 0.2,
     );
+
+    // Android 13+ requires runtime notification permission for foreground service
+    final notificationStatus = await Permission.notification.status;
+    if (!notificationStatus.isGranted) {
+      await Permission.notification.request();
+    }
 
     // Configure Android Notification
     await _location.changeNotificationOptions(
