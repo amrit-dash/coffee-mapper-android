@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.1.2)'
+        description: 'Version number (e.g., 5.0.0)'
         required: true
-        type: string
-      build_number:
-        description: 'Build number (optional)'
-        required: false
         type: string
 
 env:
@@ -129,19 +125,10 @@ jobs:
       - name: Resolve build number
         id: version
         run: |
-          if [ -n "${{ inputs.build_number }}" ]; then
-            BUILD_NUMBER="${{ inputs.build_number }}"
-          else
-            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-            if [[ "$PUBSPEC_VERSION" == *"+"* ]]; then
-              BUILD_NUMBER="${PUBSPEC_VERSION#*+}"
-            else
-              echo "Build number required. Set build_number input or version in pubspec.yaml as X.Y.Z+N."
-              exit 1
-            fi
-          fi
+          BUILD_NUMBER="${{ inputs.version }}"
+          BUILD_NUMBER="${BUILD_NUMBER//./}"
           echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "Resolved build number: $BUILD_NUMBER"
+          echo "Resolved build number: $BUILD_NUMBER (versionCode from ${{ inputs.version }})"
 
       - name: Update version in pubspec.yaml
         run: |
