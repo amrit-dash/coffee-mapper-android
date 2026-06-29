@@ -5,8 +5,7 @@ usage() {
     echo "Usage: $0 [dev|prod] [version]"
     echo "  dev  - Build debug APK with development configuration"
     echo "  prod - Build release APK with production configuration"
-    echo "  version - Version as X.Y.Z or X.Y.Z+N (e.g., 5.0.0 or 5.0.0+50)"
-    echo "            If +N is omitted, build number is read from pubspec.yaml"
+    echo "  version - Version number (e.g., 5.0.0)"
     exit 1
 }
 
@@ -18,32 +17,6 @@ handle_error() {
         mv pubspec.yaml.bak pubspec.yaml
     fi
     exit 1
-}
-
-# Function to read the current version line from pubspec.yaml
-read_pubspec_version() {
-    grep "^version:" pubspec.yaml | cut -d' ' -f2
-}
-
-# Parse X.Y.Z or X.Y.Z+N into VERSION_NAME and BUILD_NUMBER
-parse_version_parts() {
-    local input=$1
-
-    if [[ "$input" == *"+"* ]]; then
-        VERSION_NAME="${input%+*}"
-        BUILD_NUMBER="${input#*+}"
-        return
-    fi
-
-    VERSION_NAME="$input"
-
-    local pubspec_version
-    pubspec_version=$(read_pubspec_version)
-    if [[ "$pubspec_version" == *"+"* ]]; then
-        BUILD_NUMBER="${pubspec_version#*+}"
-    else
-        handle_error "Build number required. Use X.Y.Z+N or set version in pubspec.yaml as X.Y.Z+N."
-    fi
 }
 
 # Function to update pubspec version
@@ -67,6 +40,12 @@ restore_pubspec() {
     fi
 }
 
+# Function to convert version to build number (versionCode = dots removed, e.g. 5.0.0 -> 500)
+version_to_build_number() {
+    local version=$1
+    echo "${version//./}"
+}
+
 # Check if arguments are provided
 if [ $# -lt 1 ]; then
     usage
@@ -74,9 +53,8 @@ fi
 
 # Set environment based on argument
 ENV=$1
-VERSION_INPUT=${2:-$(read_pubspec_version)}
-parse_version_parts "$VERSION_INPUT"
-VERSION="$VERSION_NAME"
+VERSION=${2:-"1.0.0"}  # Use provided version or default to 1.0.0
+BUILD_NUMBER=$(version_to_build_number "$VERSION")
 BUILD_DIR="builds/${ENV}"
 
 # Create builds directory if it doesn't exist
@@ -181,4 +159,4 @@ if [ $ENV == "prod" ]; then
 else
     echo "Generated file:"
     echo "- APK: ${OUTPUT_NAME}.apk"
-fi 
+fi
