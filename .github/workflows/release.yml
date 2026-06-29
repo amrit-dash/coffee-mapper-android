@@ -126,10 +126,27 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
         
+      - name: Resolve build number
+        id: version
+        run: |
+          if [ -n "${{ inputs.build_number }}" ]; then
+            BUILD_NUMBER="${{ inputs.build_number }}"
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+            if [[ "$PUBSPEC_VERSION" == *"+"* ]]; then
+              BUILD_NUMBER="${PUBSPEC_VERSION#*+}"
+            else
+              echo "Build number required. Set build_number input or version in pubspec.yaml as X.Y.Z+N."
+              exit 1
+            fi
+          fi
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "Resolved build number: $BUILD_NUMBER"
+
       - name: Update version in pubspec.yaml
         run: |
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" pubspec.yaml
-          cat pubspec.yaml | grep "^version:"
+          sed -i "s/^version: .*/version: ${{ inputs.version }}+${{ steps.version.outputs.build_number }}/" pubspec.yaml
+          grep "^version:" pubspec.yaml
         
       - name: Create firebase_options.dart
         run: |
@@ -226,11 +243,11 @@ jobs:
         
       - name: Build Release APK
         run: |
-          flutter build apk --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          flutter build apk --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ steps.version.outputs.build_number }}
           
       - name: Build App Bundle (AAB)
         run: |
-          flutter build appbundle --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ github.run_number }}
+          flutter build appbundle --release --dart-define=ENVIRONMENT=production --build-name=${{ inputs.version }} --build-number=${{ steps.version.outputs.build_number }}
           
       - name: Setup Android NDK
         run: |
@@ -338,7 +355,7 @@ jobs:
             Given below are the details of the latest release build of Coffee Mapper APK.
             
             **Version:** v${{ inputs.version }}
-            **Build Number:** ${{ github.run_number }}
+            **Build Number:** ${{ steps.version.outputs.build_number }}
             **Release Date:** ${{ env.BUILD_DATE }}
             
             This is the [OFFICIAL] Build of the app and can be updated to existing to previous versions.
