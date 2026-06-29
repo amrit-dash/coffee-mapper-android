@@ -5,10 +5,10 @@ All notable changes to the Coffee Mapper Android app will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.0.0+50] - 2026-06-29
+## [5.0.0] - 2026-06-30
 
 ### Fixed
-- `scripts/build.sh` now uses the pubspec build number (`+50`) for `versionCode` instead of stripping dots from the version name (which produced `500` for `5.0.0`).
+- Restored `versionCode` convention: dots removed from version name (`5.0.0` → `500`), matching Play Console history (`4.0.3` → `403`, etc.). Reverted incorrect `+50` build number that collided with `1.4.2`.
 - Shared pre-warmed FlutterEngine between `CoffeeMapperApplication` and `MainActivity` to prevent double engine initialization.
 - Removed stale `com.example.app.LocationService` manifest entry with no matching implementation.
 - Added Android 13+ permissions: `POST_NOTIFICATIONS`, `READ_MEDIA_IMAGES`, and `READ_MEDIA_VIDEO`.
