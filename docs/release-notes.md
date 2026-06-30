@@ -1,6 +1,6 @@
 # Play Store release notes
 
-This file stores **What's new** text for Google Play Console, per app version. Copy the **en-US** section for each release into Play Console when publishing.
+This file stores **What's new** text for Google Play Console, per app version. Copy the **Play Console (≤500 characters)** section for each release into Play Console when publishing — Google rejects text over 500 characters inside the language tag.
 
 Developer-facing change history lives in [`CHANGELOG.md`](../CHANGELOG.md).
 
@@ -16,7 +16,21 @@ Developer-facing change history lives in [`CHANGELOG.md`](../CHANGELOG.md).
 
 ## 5.0.0 (en-US)
 
-### Full (Play Store)
+### Play Console (≤500 characters)
+
+**Character count: 271** — paste this block into Play Console.
+
+```
+What's new in 5.0.0
+
+• Multi-panchayat attendance with 2 km geofence
+• Faster startup and more reliable GPS mapping
+• Android 13+ support for notifications and media
+• Security and backend stability improvements
+• Includes 4.0.0+ attendance updates and Android 15 support
+```
+
+### Full (reference only — do not paste into Play Console)
 
 ```
 What's new in 5.0.0
@@ -47,7 +61,7 @@ From earlier releases (4.0.0+)
 • Backend improvements, security updates, and legacy fixes
 ```
 
-### Short (Play Console character limits)
+### Short (reference only — do not paste into Play Console)
 
 ```
 What's new in 5.0.0
